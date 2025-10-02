@@ -1,0 +1,128 @@
+{% extends "user/index.html" %}
+{% load static %}
+
+{% block content %}
+<div class="card">
+  <h5 class="card-header">Mis permisos</h5>
+  <div class="table-responsive text-nowrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tipo</th>
+          <th>Descripción</th>
+          <th>Ubicación</th>
+          <th>Estado</th>
+          <th>Creado</th>
+          <th>Adjuntos</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody class="table-border-bottom-0">
+        {% for p in permisos %}
+        <tr>
+          <td>#{{ p.id }}</td>
+          <td>{{ p.tipo_permiso.nombre }}</td>
+          <td class="text-truncate" style="max-width:280px;">
+            {{ p.descripcion|default:"—"|truncatechars:90 }}
+          </td>
+
+          <td>
+            {% if p.ubicacion %}
+              {% if p.ubicacion.direccion %}
+                {{ p.ubicacion.direccion }}
+              {% elif p.ubicacion.latitud and p.ubicacion.longitud %}
+                {{ p.ubicacion.latitud }}, {{ p.ubicacion.longitud }}
+              {% else %}—{% endif %}
+              {% if p.ubicacion.barrio %}
+                <div class="text-muted small">Barrio: {{ p.ubicacion.barrio.nombre }}</div>
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+
+          <td>
+            {% if p.estado == "enviada" %}
+              <span class="badge bg-label-secondary">Enviada</span>
+            {% elif p.estado == "revisada" %}
+              <span class="badge bg-label-info">Revisada</span>
+            {% elif p.estado == "aceptada" %}
+              <span class="badge bg-label-success">Aceptada</span>
+            {% elif p.estado == "en proceso" %}
+              <span class="badge bg-label-warning">En proceso</span>
+            {% elif p.estado == "finalizada" %}
+              <span class="badge bg-label-dark">Finalizada</span>
+            {% else %}
+              <span class="badge bg-label-secondary">{{ p.estado }}</span>
+            {% endif %}
+          </td>
+
+          <td>{{ p.creado_en|date:"d/m/Y H:i" }}</td>
+
+          <td class="text-nowrap">
+            {% if p.dpi_frente %}
+              <a href="{{ p.dpi_frente.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="DPI frente"><i class="bx bx-id-card"></i></a>
+            {% endif %}
+            {% if p.dpi_reverso %}
+              <a href="{{ p.dpi_reverso.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="DPI reverso"><i class="bx bx-id-card"></i></a>
+            {% endif %}
+            {% if p.evidencia_lugar %}
+              <a href="{{ p.evidencia_lugar.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Evidencia del lugar"><i class="bx bx-image"></i></a>
+            {% endif %}
+            {% if not p.dpi_frente and not p.dpi_reverso and not p.evidencia_lugar %}—{% endif %}
+          </td>
+
+          <td class="text-center">
+            <div class="d-flex gap-2">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'permiso_detalle' p.id %}" title="Ver detalle">
+                <i class="bx bx-show"></i>
+              </a>
+              {% if p.estado == "enviada" and p.usuario_id == request.user.id %}
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'permiso_editar' p.id %}" title="Editar">
+                  <i class="bx bx-pencil"></i>
+                </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="text-center text-muted py-5">Aún no tienes permisos.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if permisos.paginator.num_pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <div class="text-muted">
+      Página {{ permisos.number }} de {{ permisos.paginator.num_pages }}
+    </div>
+    <nav>
+      <ul class="pagination mb-0">
+        {% if permisos.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ permisos.previous_page_number }}" aria-label="Anterior">&laquo;</a></li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        {% for num in permisos.paginator.page_range %}
+          {% if num == permisos.number %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num >= permisos.number|add:-2 and num <= permisos.number|add:2 %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if permisos.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ permisos.next_page_number }}" aria-label="Siguiente">&raquo;</a></li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

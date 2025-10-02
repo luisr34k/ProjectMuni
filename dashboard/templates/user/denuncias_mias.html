@@ -1,0 +1,128 @@
+{% extends "user/index.html" %}
+{% load static %}
+
+{% block content %}
+
+
+
+
+<div class="card">
+  <h5 class="card-header">Mis denuncias</h5>
+  <div class="table-responsive text-nowrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Categoría</th>
+          <th>Descripción</th>
+          <th>Ubicación</th>
+          <th>Estado</th>
+          <th>Creada</th>
+          <th>Evidencia</th>
+          <th>Acciones</th> {# <-- NUEVA #} </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        {% for d in denuncias %}
+        <tr>
+          <td>#{{ d.id }}</td>
+          <td>{{ d.categoria.nombre }}</td>
+          <td class="text-truncate" style="max-width:280px;">{{ d.descripcion|truncatechars:90 }}</td>
+          <td>
+            {% if d.ubicacion %}
+            {% if d.ubicacion.direccion %}
+            {{ d.ubicacion.direccion }}
+            {% elif d.ubicacion.latitud and d.ubicacion.longitud %}
+            {{ d.ubicacion.latitud }}, {{ d.ubicacion.longitud }}
+            {% else %}—{% endif %}
+            {% if d.ubicacion.barrio %}
+            <div class="text-muted small">Barrio: {{ d.ubicacion.barrio.nombre }}</div>
+            {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if d.estado == "enviada" %}
+            <span class="badge bg-label-secondary">Enviada</span>
+            {% elif d.estado == "en revisión" %}
+            <span class="badge bg-label-info">En revisión</span>
+            {% elif d.estado == "en proceso" %}
+            <span class="badge bg-label-warning">En proceso</span>
+            {% elif d.estado == "resuelta" %}
+            <span class="badge bg-label-success">Resuelta</span>
+            {% elif d.estado == "cerrada" %}
+            <span class="badge bg-label-dark">Cerrada</span>
+            {% else %}
+            <span class="badge bg-label-secondary">{{ d.estado }}</span>
+            {% endif %}
+          </td>
+          <td>{{ d.creada_en|date:"d/m/Y H:i" }}</td>
+          <td>
+            {% if d.evidencia %}
+            <a href="{{ d.evidencia.url }}" target="_blank" class="btn btn-sm btn-outline-secondary"
+              title="Ver archivo">
+              <i class="bx bx-file"></i>
+            </a>
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-center">
+            <div class="d-flex gap-2">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'detalle_denuncia' d.id %}" title="Ver detalle">
+                <i class="bx bx-show"></i>
+              </a>
+
+              {% if d.estado == "enviada" and d.usuario_id == request.user.id %}
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'editar_denuncia' d.id %}" title="Editar">
+                <i class="bx bx-pencil"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="text-center text-muted py-5">Aún no tienes denuncias.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+
+  {% if denuncias.paginator.num_pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <div class="text-muted">
+      Página {{ denuncias.number }} de {{ denuncias.paginator.num_pages }}
+    </div>
+    <nav>
+      <ul class="pagination mb-0">
+        {% if denuncias.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ denuncias.previous_page_number }}" aria-label="Anterior">&laquo;</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        {% for num in denuncias.paginator.page_range %}
+        {% if num == denuncias.number %}
+        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+        {% elif num >= denuncias.number|add:-2 and num <= denuncias.number|add:2 %} <li class="page-item"><a
+            class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+          {% endif %}
+          {% endfor %}
+
+          {% if denuncias.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ denuncias.next_page_number }}" aria-label="Siguiente">&raquo;</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+          {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

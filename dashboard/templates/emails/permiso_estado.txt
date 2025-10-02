@@ -1,0 +1,24 @@
+Hola {{ nombre }},
+
+Tu permiso #{{ id }} ({{ tipo }}) cambió de estado.
+
+De: {{ estado_anterior|default:"—" }}
+A:  {{ estado_nuevo }}
+
+{% if estado_nuevo == "aceptada" %}
+— Nota de aceptación —
+{{ nota|default:"(sin nota)" }}
+
+{% if adjunto_url %}
+Se adjuntó una copia del permiso:
+{{ adjunto_url }}
+{% endif %}
+{% endif %}
+
+{% if observaciones %}
+— Observaciones —
+{{ observaciones }}
+{% endif %}
+
+Gracias,
+Municipalidad

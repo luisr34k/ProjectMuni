@@ -1,0 +1,38 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block admin_title %}Pagos · Tren de Aseo{% endblock %}
+{% block content %}
+  <h4>Tren de Aseo</h4>
+
+  {% if not cuenta %}
+    <div class="alert alert-info">No tienes una cuenta vinculada.</div>
+    <a class="btn btn-primary" href="{% url 'vincular_cuenta' %}">Vincular cuenta</a>
+  {% else %}
+    <p><strong>Cuenta:</strong> {{ cuenta.id }} · {{ cuenta.titular }}</p>
+
+    {% if boletas %}
+      <table class="table">
+        <thead><tr><th>Periodo</th><th>Estado</th><th class="text-end">Saldo</th></tr></thead>
+        <tbody>
+          {% for b in boletas %}
+            <tr>
+              <td>{{ b.periodo.etiqueta }}</td>
+              <td>{{ b.estado|title }}</td>
+              <td class="text-end">Q {{ b.saldo_actual }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><th colspan="2" class="text-end">Total</th><th class="text-end">Q {{ total }}</th></tr>
+        </tfoot>
+      </table>
+      {% if checkout_url %}
+        <a class="btn btn-success" href="{{ checkout_url }}">Pagar en línea</a>
+      {% else %}
+        <div class="alert alert-secondary">No hay saldo por pagar.</div>
+      {% endif %}
+    {% else %}
+      <div class="alert alert-secondary">No hay boletas pendientes.</div>
+    {% endif %}
+  {% endif %}
+{% endblock %}

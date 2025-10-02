@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block admin_title %}Denuncia #{{ d.id }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Detalle -->
+  <div class="col-12 col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Denuncia #{{ d.id }}</h5>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'admin_denuncias' %}">← Volver</a>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <!-- ... (todo tu detalle como ya lo tienes) ... -->
+
+          {% if d.resolucion_nota or d.resolucion_evidencia %}
+            <dt class="col-sm-3">Resolución</dt>
+            <dd class="col-sm-9">
+              {% if d.resolucion_nota %}
+                <div class="mb-2">{{ d.resolucion_nota }}</div>
+              {% endif %}
+              {% if d.resolucion_evidencia %}
+                <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ d.resolucion_evidencia.url }}">
+                  Ver evidencia
+                </a>
+              {% endif %}
+            </dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cambiar estado -->
+  <div class="col-12 col-lg-4">
+    <div class="card">
+      <div class="card-header"><h5 class="mb-0">Cambiar estado</h5></div>
+      <div class="card-body">
+        <form method="post" action="{% url 'admin_cambiar_estado' d.id %}" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label" for="id_estado">Estado</label>
+            {{ form_estado.estado|add_class:"form-select" }}
+          </div>
+
+          <div class="mb-3" id="bloque-rechazo" style="display: {% if d.estado == 'rechazada' %}block{% else %}none{% endif %};">
+            <label class="form-label" for="id_rechazo_motivo">Motivo del rechazo</label>
+            {{ form_estado.rechazo_motivo|add_class:"form-control" }}
+          </div>
+
+          <div id="bloque-resuelta" style="display: {% if d.estado == 'resuelta' %}block{% else %}none{% endif %};">
+            <div class="mb-3">
+              <label class="form-label" for="id_resolucion_nota">Nota de resolución (opcional)</label>
+              {{ form_estado.resolucion_nota|add_class:"form-control" }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="id_resolucion_evidencia">Evidencia de resolución (opcional)</label>
+              {{ form_estado.resolucion_evidencia|add_class:"form-control" }}
+              {% if d.resolucion_evidencia %}
+                <div class="mt-2">
+                  <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ d.resolucion_evidencia.url }}">
+                    Ver evidencia actual
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <button class="btn btn-primary">Guardar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const estadoSel = document.getElementById('id_estado');
+    const bloqueRechazo = document.getElementById('bloque-rechazo');
+    const bloqueResuelta = document.getElementById('bloque-resuelta');
+
+    function toggleBloques() {
+      const val = estadoSel.value;
+      bloqueRechazo.style.display = (val === 'rechazada') ? 'block' : 'none';
+      bloqueResuelta.style.display = (val === 'resuelta') ? 'block' : 'none';
+    }
+    estadoSel.addEventListener('change', toggleBloques);
+    toggleBloques(); // <-- inicializa al cargar
+  })();
+</script>
+{% endblock %}

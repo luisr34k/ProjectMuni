@@ -1,0 +1,86 @@
+<div class="app-brand demo">
+  <a href="{% url 'index' %}" class="app-brand-link">
+    <span class="app-brand-text demo menu-text fw-bold ms-2">San Luis</span>
+  </a>
+  <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
+    <i class="bx bx-chevron-left bx-sm d-flex align-items-center justify-content-center"></i>
+  </a>
+</div>
+
+<div class="menu-inner-shadow"></div>
+
+<ul class="menu-inner py-1">
+  {# Mapa público visible para todos #}
+  <li class="menu-item">
+    <a href="{% url 'mapa_publico' %}" class="menu-link">
+      <i class="menu-icon tf-icons bx bx-map"></i>
+      <div class="text-truncate">Mapa público</div>
+    </a>
+  </li>
+
+  {# Denuncias (área del ciudadano) #}
+  <li class="menu-item">
+    <a href="javascript:void(0);" class="menu-link menu-toggle">
+      <i class="menu-icon tf-icons bx bx-home-smile"></i>
+      <div class="text-truncate">Denuncias</div>
+    </a>
+    <ul class="menu-sub">
+      <li class="menu-item">
+        <a href="{% url 'form_denuncias' %}" class="menu-link"><div class="text-truncate">Realizar denuncia</div></a>
+      </li>
+      <li class="menu-item">
+        <a href="{% url 'mis_denuncias' %}" class="menu-link"><div class="text-truncate">Mis denuncias</div></a>
+      </li>
+    </ul>
+  </li>
+
+  {# Permisos (área del ciudadano) #}
+  <li class="menu-item">
+    <a href="javascript:void(0);" class="menu-link menu-toggle">
+      <i class="menu-icon tf-icons bx bx-layout"></i>
+      <div class="text-truncate">Permisos</div>
+    </a>
+    <ul class="menu-sub">
+      <li class="menu-item">
+        <a href="{% url 'form_permisos' %}" class="menu-link">
+          <div class="text-truncate">Solicitar permiso</div>
+        </a>
+      </li>
+      <li class="menu-item">
+        <a href="{% url 'mis_permisos' %}" class="menu-link">
+          <div class="text-truncate">Mis permisos</div>
+        </a>
+      </li>
+    </ul>
+  </li>
+
+  {# Pagos (placeholder) #}
+  <li class="menu-item">
+    <a href="javascript:void(0);" class="menu-link menu-toggle">
+      <i class="menu-icon tf-icons bx bx-store"></i>
+      <div class="text-truncate">Pagos</div>
+    </a>
+    <ul class="menu-sub">
+      <li class="menu-item">
+          <a href="{% url 'pagos_home' %}" class="menu-link">
+            <div class="text-truncate">Pagar en línea</div>
+          </a>
+      </li>
+    </ul>
+  </li>
+
+  {# Bloque extra solo para admin #}
+  {% if request.user.is_authenticated and request.user.is_staff %}
+  <li class="menu-item">
+    <a href="javascript:void(0);" class="menu-link menu-toggle">
+      <i class="menu-icon tf-icons bx bx-shield"></i>
+      <div class="text-truncate">Administración</div>
+    </a>
+    <ul class="menu-sub">
+      <li class="menu-item"><a href="{% url 'admin_panel' %}" class="menu-link"><div class="text-truncate">Panel admin</div></a></li>
+      <li class="menu-item"><a href="{% url 'admin_denuncias' %}" class="menu-link"><div class="text-truncate">Denuncias</div></a></li>
+      <li class="menu-item"><a href="{% url 'admin_permisos' %}" class="menu-link"><div class="text-truncate">Permisos</div></a></li>
+    </ul>
+  </li>
+  {% endif %}
+</ul>

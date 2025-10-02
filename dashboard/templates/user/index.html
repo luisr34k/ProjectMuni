@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mi MuniSanLuis{% endblock %}
+
+
+
+{% block navbar %}
+  <!-- Navbar del usuario -->
+  <nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached bg-navbar-theme" id="layout-navbar">
+    <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
+      <ul class="navbar-nav flex-row align-items-center ms-auto">
+        <li class="nav-item dropdown-user dropdown">
+          <a class="nav-link dropdown-toggle hide-arrow p-0" href="#" data-bs-toggle="dropdown">
+            <div class="avatar avatar-online">
+              <img src="{% static 'img/avatars/1.png' %}" class="w-px-40 h-auto rounded-circle" alt="user"/>
+            </div>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+              <a class="dropdown-item" href="{% url 'logout' %}">
+                <i class="bx bx-power-off me-2"></i> Cerrar sesión
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </nav>
+{% endblock navbar %}
+
+
+{% block content %}
+  <!-- Aquí irá el contenido dinámico -->
+  
+    <h4 class="fw-bold py-3 mb-4">Bienvenido al sistema ciudadano</h4>
+    <p>Desde aquí puede gestionar denuncias, permisos y pagos.</p>
+  
+{% endblock content %}

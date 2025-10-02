@@ -1,0 +1,12 @@
+{# templates/emails/denuncia_creada.txt #}
+Hola {{ nombre }},
+
+Recibimos tu denuncia #{{ id }} ({{ categoria }}).
+Estado inicial: {{ estado }}.
+Fecha: {{ fecha|date:"d/m/Y H:i" }}
+
+Descripción (resumen):
+{{ descripcion }}
+
+Te avisaremos cuando cambie el estado.
+Gracias por usar Mi Muni San Luis.

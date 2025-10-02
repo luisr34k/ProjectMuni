@@ -1,0 +1,81 @@
+{% extends "admin_panel/base_admin.html" %}
+{% block admin_title %}Denuncias{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Denuncias</h5>
+    <form method="get" class="mb-3 d-flex gap-2">
+      <select name="estado" class="form-select" style="max-width:220px;">
+        <option value="">Todos los estados</option>
+        {% for e in ESTADOS %}
+        <option value="{{ e }}" {% if estado == e %}selected{% endif %}>{{ e|title }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-primary">Filtrar</button>
+      {% if estado %}
+      <a class="btn btn-outline-secondary" href="{% url 'admin_denuncias' %}">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Categoría</th>
+          <th>Usuario</th>
+          <th>Estado</th>
+          <th>Creada</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in page_obj.object_list %}
+        <tr>
+          <td>#{{ d.id }}</td>
+          <td>{{ d.categoria.nombre }}</td>
+          <td>{% if d.usuario %}{{ d.usuario.correo }}{% else %}<span class="text-muted">Anónima</span>{% endif %}</td>
+          <td>{{ d.estado }}</td>
+          <td>{{ d.creada_en|date:"d/m/Y H:i" }}</td>
+          <td><a class="btn btn-sm btn-outline-primary" href="{% url 'admin_denuncia_detalle' d.id %}">Ver</a></td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">Sin registros</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="card-footer">
+    <nav>
+      <ul class="pagination mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link"
+            href="?page={{ page_obj.previous_page_number }}{% if estado %}&estado={{ estado }}{% endif %}">&laquo;</a>
+        </li>
+        {% else %}<li class="page-item disabled"><span class="page-link">&laquo;</span></li>{% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}
+        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+        {% elif num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %} <li class="page-item"><a
+            class="page-link" href="?page={{ num }}{% if estado %}&estado={{ estado }}{% endif %}">{{ num }}</a></li>
+          {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link"
+              href="?page={{ page_obj.next_page_number }}{% if estado %}&estado={{ estado }}{% endif %}">&raquo;</a>
+          </li>
+          {% else %}<li class="page-item disabled"><span class="page-link">&raquo;</span></li>{% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

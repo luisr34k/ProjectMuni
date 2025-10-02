@@ -1,0 +1,232 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load widget_tweaks %}
+
+{% block admin_title %}Permiso #{{ p.id }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Detalle -->
+  <div class="col-12 col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          Permiso #{{ p.id }}{% if p.tipo_permiso %} — {{ p.tipo_permiso.nombre }}{% endif %}
+        </h5>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'admin_permisos' %}">← Volver</a>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Usuario</dt>
+          <dd class="col-sm-9">
+            {% if p.usuario %}{{ p.usuario.correo }}{% else %}<span class="text-muted">—</span>{% endif %}
+          </dd>
+
+          <dt class="col-sm-3">Estado</dt>
+          <dd class="col-sm-9">
+            {% if p.estado == "enviada" %}
+              <span class="badge bg-label-secondary">Enviada</span>
+            {% elif p.estado == "revisada" %}
+              <span class="badge bg-label-info">Revisada</span>
+            {% elif p.estado == "aceptada" %}
+              <span class="badge bg-label-primary">Aceptada</span>
+            {% elif p.estado == "en proceso" %}
+              <span class="badge bg-label-warning">En proceso</span>
+            {% elif p.estado == "finalizada" %}
+              <span class="badge bg-label-success">Finalizada</span>
+            {% else %}
+              <span class="badge bg-label-secondary">{{ p.estado }}</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-3">Creado</dt>
+          <dd class="col-sm-9">{{ p.creado_en|date:"d/m/Y H:i" }}</dd>
+
+          {% if p.finalizado_en %}
+            <dt class="col-sm-3">Finalizado</dt>
+            <dd class="col-sm-9">{{ p.finalizado_en|date:"d/m/Y H:i" }}</dd>
+          {% endif %}
+
+          <dt class="col-sm-3">Periodo</dt>
+          <dd class="col-sm-9">
+            {{ p.comienza_en|date:"d/m/Y H:i" }} — {{ p.termina_en|date:"d/m/Y H:i" }}
+          </dd>
+
+          <dt class="col-sm-3">Descripción</dt>
+          <dd class="col-sm-9">{{ p.descripcion|default:"—"|linebreaksbr }}</dd>
+
+          <dt class="col-sm-3">Requiere PMT</dt>
+          <dd class="col-sm-9">{{ p.requiere_pmt|yesno:"Sí,No" }}</dd>
+
+          <dt class="col-sm-3">Requiere conos</dt>
+          <dd class="col-sm-9">{{ p.requiere_conos|yesno:"Sí,No" }}</dd>
+
+          {% if p.observaciones %}
+            <dt class="col-sm-3">Observaciones</dt>
+            <dd class="col-sm-9">{{ p.observaciones|linebreaksbr }}</dd>
+          {% endif %}
+
+          <dt class="col-sm-3">DPI (frente)</dt>
+          <dd class="col-sm-9">
+            {% if p.dpi_frente %}
+              <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ p.dpi_frente.url }}">Ver / descargar</a>
+            {% else %}<span class="text-muted">No adjunto</span>{% endif %}
+          </dd>
+
+          <dt class="col-sm-3">DPI (reverso)</dt>
+          <dd class="col-sm-9">
+            {% if p.dpi_reverso %}
+              <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ p.dpi_reverso.url }}">Ver / descargar</a>
+            {% else %}<span class="text-muted">No adjunto</span>{% endif %}
+          </dd>
+
+          <dt class="col-sm-3">Evidencia del lugar</dt>
+          <dd class="col-sm-9">
+            {% if p.evidencia_lugar %}
+              <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ p.evidencia_lugar.url }}">Ver / descargar</a>
+            {% else %}<span class="text-muted">No adjunto</span>{% endif %}
+          </dd>
+
+          {% if p.ubicacion %}
+            <dt class="col-sm-3">Dirección</dt>
+            <dd class="col-sm-9">{{ p.ubicacion.direccion|default:"—" }}</dd>
+
+            {% if p.ubicacion.barrio %}
+              <dt class="col-sm-3">Barrio</dt>
+              <dd class="col-sm-9">{{ p.ubicacion.barrio.nombre }}</dd>
+            {% endif %}
+
+            {% if p.ubicacion.latitud and p.ubicacion.longitud %}
+              <dt class="col-sm-3">Coordenadas</dt>
+              <dd class="col-sm-9">{{ p.ubicacion.latitud }}, {{ p.ubicacion.longitud }}</dd>
+            {% endif %}
+          {% endif %}
+
+          {% if p.estado == "aceptada" %}
+            <dt class="col-sm-3">Aceptación</dt>
+            <dd class="col-sm-9">
+                {% if p.aceptacion_nota %}
+                <div class="mb-2">{{ p.aceptacion_nota|linebreaksbr }}</div>
+                {% endif %}
+                {% if p.permiso_adjunto %}
+                <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ p.permiso_adjunto.url }}">
+                    Ver permiso adjunto
+                </a>
+                {% endif %}
+                {% if not p.aceptacion_nota and not p.permiso_adjunto %}
+                <span class="text-muted">Sin nota ni adjunto.</span>
+                {% endif %}
+            </dd>
+            {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cambiar estado -->
+  <div class="col-12 col-lg-4">
+    <div class="card">
+      <div class="card-header"><h5 class="mb-0">Cambiar estado</h5></div>
+      <div class="card-body">
+        <form method="post" action="{% url 'admin_permiso_cambiar_estado' p.id %}" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label" for="estado-admin">Estado</label>
+              {% render_field form_estado.estado class="form-select" id="estado-admin" %}
+            </div>
+
+            {# visible solo si el valor actual del select es 'aceptada' #}
+            <div id="bloque-aceptada" style="display:none;">
+              <div class="mb-3">
+                <label class="form-label" for="{{ form_estado.aceptacion_nota.id_for_label }}">Nota de aceptación</label>
+                {{ form_estado.aceptacion_nota }}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form_estado.permiso_adjunto.id_for_label }}">Permiso adjunto (opcional)</label>
+                {{ form_estado.permiso_adjunto }}
+                {% if p.permiso_adjunto %}
+                  <div class="mt-2">
+                    <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ p.permiso_adjunto.url }}">Ver adjunto actual</a>
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="{{ form_estado.observaciones.id_for_label }}">Observaciones (visibles al usuario)</label>
+                {{ form_estado.observaciones }}
+              </div>
+            </div>
+
+            <button class="btn btn-primary">Guardar</button>
+        </form>
+        </div>
+    </div>
+  </div>
+</div>
+
+{# Bitácora #}
+<div class="card mt-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+    <h6 class="mb-0">Bitácora</h6>
+    <small class="text-muted">Cambios y eventos</small>
+    </div>
+    <div class="card-body">
+    {% if bitacoras %}
+        <ul class="list-unstyled mb-0">
+        {% for b in bitacoras %}
+            <li class="mb-3 pb-3 border-bottom">
+            <div class="d-flex justify-content-between">
+                <strong>{{ b.accion }}</strong>
+                <small class="text-muted">{{ b.fecha|date:"d/m/Y H:i" }}</small>
+            </div>
+            {% if b.estado_anterior or b.estado_nuevo %}
+                <div class="small text-muted">Estado: {{ b.estado_anterior|default:"—" }} → {{ b.estado_nuevo|default:"—" }}</div>
+            {% endif %}
+            {% if b.cambios is not None %}
+                {% with elid='cambios_'|add:b.id|stringformat:"s" %}
+                {{ b.cambios|json_script:elid }}
+                <details class="mt-1">
+                    <summary class="small text-muted">Ver cambios</summary>
+                    <pre class="small mb-0 pretty-json" data-source="{{ elid }}"></pre>
+                </details>
+                {% endwith %}
+            {% endif %}
+            {% if b.usuario %}
+                <div class="small text-muted">Por: {{ b.usuario.correo }}</div>
+            {% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <div class="text-muted">Aún no hay eventos.</div>
+    {% endif %}
+    </div>
+</div>
+
+{# pretty-print de cambios #}
+<script>
+  (function(){
+    var sel  = document.querySelector('select[name="{{ form_estado.estado.html_name }}"]') || document.getElementById('estado-admin');
+    var box  = document.getElementById('bloque-aceptada');
+    var nota = document.getElementById('nota-aceptacion-admin');
+    var adj  = document.getElementById('adjunto-permiso-admin');
+    if (!sel || !box) return;
+
+    function isAceptada(v){
+      return (v || '').trim().toLowerCase() === 'aceptada';
+    }
+    function toggle(){
+      var v = sel.value;
+      var on = isAceptada(v);
+      box.style.display = on ? 'block' : 'none';
+      if (nota) nota.disabled = !on;
+      if (adj)  adj.disabled  = !on;
+    }
+    sel.addEventListener('change', toggle);
+    toggle();
+  })();
+</script>
+
+
+
+{% endblock %}

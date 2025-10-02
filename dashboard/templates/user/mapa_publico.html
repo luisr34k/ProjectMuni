@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mapa público{% endblock %}
+
+{# Cargamos Leaflet solo en esta página #}
+{% block extra_css %}
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    #map {
+      width: 100%;
+      height: calc(100vh - 220px); /* ocupa casi toda la pantalla */
+      min-height: 480px;
+      border-radius: .5rem;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Mapa de San Luis Jilotepeque</h5>
+      <div>
+        {# Controles simples preparados para el futuro #}
+        <button id="btn-denuncias" class="btn btn-sm btn-outline-primary me-2" disabled>
+          Denuncias (pronto)
+        </button>
+        <button id="btn-permisos" class="btn btn-sm btn-outline-secondary" disabled>
+          Permisos (pronto)
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-2">
+      <div id="map"></div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script>
+    // Centro y zoom desde el contexto del servidor
+    const CENTER = [{{ center_lat|default:"14.65" }}, {{ center_lng|default:"-89.73" }}];
+    const ZOOM   = {{ zoom|default:"13" }};
+
+    // Crear mapa
+    const map = L.map('map', {
+      center: CENTER,
+      zoom: ZOOM
+    });
+
+    // Capa base OSM
+    L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }
+    ).addTo(map);
+
+    // Marcador de referencia (puedes eliminarlo si no lo quieres)
+    L.marker(CENTER).addTo(map).bindPopup('San Luis Jilotepeque').openPopup();
+
+    // === Preparado para el futuro ===
+    // Grupos de capas para denuncias y permisos
+    const capaDenuncias = L.layerGroup();   // En el futuro: addTo(map)
+    const capaPermisos  = L.layerGroup();
+
+    // Controles (dejamos sin añadir por ahora)
+    const overlays = {
+      "Denuncias": capaDenuncias,
+      "Permisos": capaPermisos
+    };
+    // L.control.layers(null, overlays, { collapsed: true }).addTo(map);
+
+    // Ejemplo de cómo se traerían denuncias públicas más adelante:
+    // fetch("{% url 'api_denuncias_publicas' %}")
+    //   .then(r => r.json())
+    //   .then(data => {
+    //     data.forEach(d => {
+    //       if (d.lat && d.lng) {
+    //         L.marker([d.lat, d.lng]).addTo(capaDenuncias)
+    //            .bindPopup(`#${d.id} - ${d.categoria}<br>${d.descripcion}`);
+    //       }
+    //     });
+    //     capaDenuncias.addTo(map); // activar capa cuando haya datos
+    //   })
+    //   .catch(console.error);
+  </script>
+{% endblock %}

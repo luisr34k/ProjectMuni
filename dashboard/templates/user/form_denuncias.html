@@ -1,0 +1,135 @@
+{% extends "user/index.html" %}
+{% load static %}
+
+{% block content %}
+
+<form method="post" action="{% url 'crear_denuncia' %}" enctype="multipart/form-data" class="w-100">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      Revisa el formulario:
+      <ul class="mb-0">
+        {% for field, errors in form.errors.items %}
+          <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <!-- coords ocultos -->
+  <input type="hidden" id="id_latitud" name="latitud" value="{{ form.data.latitud|default_if_none:'' }}">
+  <input type="hidden" id="id_longitud" name="longitud" value="{{ form.data.longitud|default_if_none:'' }}">
+
+  <div class="row g-6">
+    <!-- IZQUIERDA -->
+    <div class="col-12 col-xl-6">
+      <div class="card h-100 mb-6">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="mb-0">Datos de la denuncia</h5>
+          <small class="text-muted">Completa la información</small>
+        </div>
+        <div class="card-body">
+          <div class="row mb-6">
+            <label class="col-sm-2 col-form-label">Categoría</label>
+            <div class="col-sm-10">
+              {{ form.categoria }}
+              {% if form.categoria.errors %}<div class="text-danger small">{{ form.categoria.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row mb-6">
+            <label class="col-sm-2 col-form-label">Fecha</label>
+            <div class="col-sm-10">
+              {{ form.fecha_hecho }}
+              {% if form.fecha_hecho.errors %}<div class="text-danger small">{{ form.fecha_hecho.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row mb-6">
+            <label class="col-sm-2 col-form-label">Descripción</label>
+            <div class="col-sm-10">
+              {{ form.descripcion }}
+              {% if form.descripcion.errors %}<div class="text-danger small">{{ form.descripcion.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row mb-6">
+            <label class="col-sm-2 col-form-label">Evidencia</label>
+            <div class="col-sm-10">
+              {{ form.evidencia }}
+              {% if form.evidencia.errors %}<div class="text-danger small">{{ form.evidencia.errors.0 }}</div>{% endif %}
+              <div class="form-text">Imágenes/PDF opcional.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DERECHA -->
+    <div class="col-12 col-xl-6">
+      <div class="card h-100 mb-6">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="mb-0">Ubicación y privacidad</h5>
+          <small class="text-muted">Selecciona ubicacion en el mapa (Opcional)</small>
+        </div>
+        <div class="card-body">
+
+          <!-- MAPA -->
+          <div class="mb-4">
+            <div id="mapa-denuncia" style="height: 320px; border-radius: .5rem; border: 1px solid #ddd;"></div>
+            <button type="button" id="btn-geolocalizar" class="btn btn-sm btn-outline-secondary mt-2">Usar mi ubicación</button>
+          </div>
+
+
+          <div class="row mb-6">
+            <label class="col-sm-2 col-form-label">Dirección</label>
+            <div class="col-sm-10">
+              {{ form.direccion }}
+              {% if form.direccion.errors %}<div class="text-danger small">{{ form.direccion.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row mb-6">
+            <label class="col-sm-2 col-form-label">Barrio</label>
+            <div class="col-sm-10">
+              {{ form.barrio }}
+              {% if form.barrio.errors %}<div class="text-danger small">{{ form.barrio.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row mb-6">
+            <div class="col-sm-10 offset-sm-2">
+              <div class="form-check">
+                {{ form.es_anonima }}
+                <label class="form-check-label ms-2" for="{{ form.es_anonima.id_for_label }}">Enviar como anónima</label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-end mt-2">
+    <div class="col-sm-10 col-xl-6">
+      <button type="submit" class="btn btn-primary">Enviar denuncia</button>
+      <a href="{% url 'mis_denuncias' %}" class="btn btn-outline-secondary">Mis denuncias</a>
+    </div>
+  </div>
+</form>
+
+{# === CARGAS: primero Leaflet CSS, luego Leaflet JS, luego tu script === #}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="{% static 'js/denuncias_map.js' %}"></script>
+
+<style>
+  /* Asegura que Bootstrap no rompa los tiles */
+  .leaflet-container img { max-width: none !important; }
+  .leaflet-container { font: inherit; } /* opcional, mantiene tipografía */
+</style>
+
+
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "user/index.html" %}
+{% load static %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="w-100">
+  {% csrf_token %}
+
+  {# Errores de formulario (globales y por campo) #}
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+      {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}
+    </div>
+  {% endif %}
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      Revisa el formulario:
+      <ul class="mb-0">
+        {% for field, errors in form.errors.items %}
+          <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="row g-6">
+    {# IZQUIERDA: Datos del permiso #}
+    <div class="col-12 col-xl-7">
+      <div class="card mb-6">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="mb-0">Editar permiso #{{ p.id }}</h5>
+          
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+
+            <div class="col-md-6">
+              <label class="form-label">Tipo de permiso</label>
+              {{ form.tipo_permiso }}
+              {% if form.tipo_permiso.errors %}<div class="invalid-feedback d-block">{{ form.tipo_permiso.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6"></div>
+
+            <div class="col-12">
+              <label class="form-label">Descripción</label>
+              {{ form.descripcion }}
+              {% if form.descripcion.errors %}<div class="invalid-feedback d-block">{{ form.descripcion.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Inicio</label>
+              {{ form.comienza_en }}
+              {% if form.comienza_en.errors %}<div class="invalid-feedback d-block">{{ form.comienza_en.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Fin</label>
+              {{ form.termina_en }}
+              {% if form.termina_en.errors %}<div class="invalid-feedback d-block">{{ form.termina_en.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="col-12"><hr></div>
+
+            <div class="col-md-4">
+              <label class="form-label">DPI (frente)</label>
+              {% if p.dpi_frente %}
+                <div class="mb-2">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ p.dpi_frente.url }}" target="_blank" rel="noopener">
+                    <i class="bx bx-file-blank me-1"></i> Archivo actual
+                  </a>
+                </div>
+              {% endif %}
+              {{ form.dpi_frente }}
+              {% if form.dpi_frente.errors %}<div class="invalid-feedback d-block">{{ form.dpi_frente.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">DPI (reverso)</label>
+              {% if p.dpi_reverso %}
+                <div class="mb-2">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ p.dpi_reverso.url }}" target="_blank" rel="noopener">
+                    <i class="bx bx-file-blank me-1"></i> Archivo actual
+                  </a>
+                </div>
+              {% endif %}
+              {{ form.dpi_reverso }}
+              {% if form.dpi_reverso.errors %}<div class="invalid-feedback d-block">{{ form.dpi_reverso.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Evidencia del lugar</label>
+              {% if p.evidencia_lugar %}
+                <div class="mb-2">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ p.evidencia_lugar.url }}" target="_blank" rel="noopener">
+                    <i class="bx bx-file-blank me-1"></i> Archivo actual
+                  </a>
+                </div>
+              {% endif %}
+              {{ form.evidencia_lugar }}
+              {% if form.evidencia_lugar.errors %}<div class="invalid-feedback d-block">{{ form.evidencia_lugar.errors|join:", " }}</div>{% endif %}
+              <div class="form-text">Imágenes/PDF opcional.</div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="form-check mt-2">
+                {{ form.requiere_pmt }}
+                <label class="form-check-label ms-2" for="{{ form.requiere_pmt.id_for_label }}">Requiere PMT</label>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="form-check mt-2">
+                {{ form.requiere_conos }}
+                <label class="form-check-label ms-2" for="{{ form.requiere_conos.id_for_label }}">Requiere conos</label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# DERECHA: Ubicación (idéntico a denuncias) #}
+    <div class="col-12 col-xl-5">
+      <div class="card mb-6">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h6 class="mb-0">Ubicación</h6>
+          <small class="text-muted">Selecciona en el mapa (opcional)</small>
+        </div>
+        <div class="card-body">
+
+          <div class="mb-3">
+            <label class="form-label">Dirección</label>
+            {{ form.direccion }}
+            {% if form.direccion.errors %}<div class="invalid-feedback d-block">{{ form.direccion.errors|join:", " }}</div>{% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Barrio</label>
+            {{ form.barrio }}
+            {% if form.barrio.errors %}<div class="invalid-feedback d-block">{{ form.barrio.errors|join:", " }}</div>{% endif %}
+          </div>
+
+          {# Inputs ocultos para coord (el mapa los gestiona) #}
+          <div class="d-none">
+            {{ form.latitud }} {{ form.longitud }}
+          </div>
+
+          <div class="mt-2">
+            <div id="mapa-permiso-edit" style="height: 320px; border-radius: .5rem; border: 1px solid #ddd;"></div>
+            <div class="d-flex gap-2 mt-2">
+              <button type="button" id="btn-geoloc-permiso-edit" class="btn btn-sm btn-outline-secondary">Usar mi ubicación</button>
+              <button type="button" id="btn-clear-marker-permiso-edit" class="btn btn-sm btn-outline-warning">Quitar marcador</button>
+            </div>
+            <small class="text-muted d-block mt-1">Haz clic en el mapa para establecer/ajustar el punto.</small>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-end mt-2">
+    <div class="col-sm-10 col-xl-6">
+      <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      <a href="{% url 'permiso_detalle' p.id %}" class="btn btn-outline-secondary">Volver al detalle</a>
+    </div>
+  </div>
+</form>
+
+{# === Leaflet + script común (mismo que en denuncias) === #}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="{% static 'js/map_common.js' %}"></script>
+<script>
+  (function(){
+    const latSel = '#{{ form.latitud.id_for_label }}';
+    const lngSel = '#{{ form.longitud.id_for_label }}';
+    const initLat = {{ p.ubicacion.latitud|default:"null" }};
+    const initLng = {{ p.ubicacion.longitud|default:"null" }};
+
+    window.initMapToInputs(
+      'mapa-permiso-edit',
+      latSel, lngSel,
+      initLat, initLng,
+      {
+        center: [14.65, -89.73],
+        zoom: 13,
+        geolocBtnId: 'btn-geoloc-permiso-edit',
+        clearBtnId: 'btn-clear-marker-permiso-edit'
+      }
+    );
+  })();
+</script>
+<style>.leaflet-container img{max-width:none!important}</style>
+{% endblock %}

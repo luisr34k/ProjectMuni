@@ -1,0 +1,12 @@
+Hola {{ nombre }},
+
+Recibimos tu solicitud de permiso #{{ id }} ({{ tipo }}).
+Fecha: {{ fecha }}
+Estado inicial: {{ estado }}
+
+Descripción:
+{{ descripcion }}
+
+Te avisaremos cuando cambie el estado.
+Gracias,
+Municipalidad

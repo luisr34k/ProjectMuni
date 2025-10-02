@@ -1,0 +1,12 @@
+{% extends "user/index.html" %}
+{% block content %}
+<h4>Elige una cuenta para pagar</h4>
+<ul>
+  {% for c in cuentas %}
+    <li>
+      {{ c.titular }}{% if c.codigo_catastral %} — {{ c.codigo_catastral }}{% endif %}
+      <a class="btn btn-sm btn-primary" href="{% url 'crear_pago_online' c.id %}">Pagar en línea</a>
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}

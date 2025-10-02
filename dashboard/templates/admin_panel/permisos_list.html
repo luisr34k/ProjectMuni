@@ -1,0 +1,112 @@
+{# templates/admin_panel/permisos.html #}
+{% extends "admin_panel/base_admin.html" %}
+{% block admin_title %}Permisos{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0">Permisos</h5>
+    <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+      <input type="text" name="q" class="form-control" placeholder="Buscar (desc, dirección, correo)" value="{{ q }}" style="min-width:260px">
+
+      <select name="estado" class="form-select" style="max-width:200px;">
+        <option value="">Todos los estados</option>
+        {% for e in ESTADOS %}
+          <option value="{{ e }}" {% if estado == e %}selected{% endif %}>
+            {{ e|title }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <select name="tipo" class="form-select" style="max-width:220px;">
+        <option value="">Todos los tipos</option>
+        {% for t in tipos %}
+          <option value="{{ t.id }}" {% if tipo|default:'' == t.id|stringformat:"s" %}selected{% endif %}>
+            {{ t.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <button class="btn btn-primary">Filtrar</button>
+      {% if q or estado or tipo %}
+        <a class="btn btn-outline-secondary" href="{% url 'admin_permisos' %}">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tipo</th>
+          <th>Usuario</th>
+          <th>Estado</th>
+          <th>Inicio</th>
+          <th>Fin</th>
+          <th>PMT</th>
+          <th>Conos</th>
+          <th>Creado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in page_obj.object_list %}
+        <tr>
+          <td>#{{ p.id }}</td>
+          <td>{{ p.tipo_permiso.nombre }}</td>
+          <td>
+            {% if p.usuario %}{{ p.usuario.correo }}{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>{{ p.estado|title }}</td>
+          <td>{{ p.comienza_en|date:"d/m/Y H:i" }}</td>
+          <td>{{ p.termina_en|date:"d/m/Y H:i" }}</td>
+          <td>{% if p.requiere_pmt %}Sí{% else %}<span class="text-muted">No</span>{% endif %}</td>
+          <td>{% if p.requiere_conos %}Sí{% else %}<span class="text-muted">No</span>{% endif %}</td>
+          <td>{{ p.creado_en|date:"d/m/Y H:i" }}</td>
+          <td>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_permiso_detalle' p.id %}">Ver</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" class="text-center text-muted py-4">Sin registros</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="card-footer">
+    <nav>
+      <ul class="pagination mb-0">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}">&laquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+          {% if num == page_obj.number %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}">&raquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

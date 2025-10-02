@@ -1,0 +1,23 @@
+{# templates/payments/vincular_cuenta.html #}
+{% extends "user/index.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<h4>Vincular cuenta de tren de aseo</h4>
+<form method="post">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label class="form-label">NIT</label>
+    {{ form.nit|add_class:"form-control" }}
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Código catastral</label>
+    {{ form.codigo_catastral|add_class:"form-control" }}
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Titular (opcional)</label>
+    {{ form.titular|add_class:"form-control" }}
+  </div>
+  <button class="btn btn-primary">Vincular</button>
+</form>
+{% endblock %}

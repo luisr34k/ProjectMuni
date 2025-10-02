@@ -1,0 +1,227 @@
+{% extends "user/index.html" %}
+{% load static %}
+
+{% block content %}
+<div class="row g-4">
+
+  {# ===== Columna IZQUIERDA: Información del permiso ===== #}
+  <div class="col-12 col-xl-7">
+    <div class="card mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+          <h4 class="mb-1">
+            Permiso #{{ p.id }}
+            {% if p.tipo_permiso %}— {{ p.tipo_permiso.nombre }}{% endif %}
+          </h4>
+          <div class="text-muted small">
+            Creado: {{ p.creado_en|date:"d/m/Y H:i" }}
+            {% if p.finalizado_en %} · Finalizado: {{ p.finalizado_en|date:"d/m/Y H:i" }}{% endif %}
+          </div>
+        </div>
+
+      </div>
+
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4 col-lg-3">Estado</dt>
+          <dd class="col-sm-8 col-lg-9">
+            <span class="badge 
+                {% if p.estado == 'finalizada' %}bg-label-success
+                {% elif p.estado == 'en proceso' %}bg-label-warning
+                {% elif p.estado == 'revisada' or p.estado == 'aceptada' %}bg-label-info
+                {% else %}bg-label-secondary{% endif %}">
+              {{ p.estado|default_if_none:"—" }}
+            </span>
+          </dd>
+          <dt class="col-sm-4 col-lg-3">Descripción</dt>
+          <dd class="col-sm-8 col-lg-9">{{ p.descripcion|default_if_none:"—"|linebreaksbr }}</dd>
+
+          <dt class="col-sm-4 col-lg-3">Requiere PMT</dt>
+          <dd class="col-sm-8 col-lg-9">{{ p.requiere_pmt|yesno:"Sí,No" }}</dd>
+
+          <dt class="col-sm-4 col-lg-3">Requiere conos</dt>
+          <dd class="col-sm-8 col-lg-9">{{ p.requiere_conos|yesno:"Sí,No" }}</dd>
+
+          {% if p.observaciones %}
+          <dt class="col-sm-4 col-lg-3">Observaciones</dt>
+          <dd class="col-sm-8 col-lg-9">{{ p.observaciones|linebreaksbr }}</dd>
+          {% endif %}
+
+          <dt class="col-sm-4 col-lg-3">DPI (frente)</dt>
+          <dd class="col-sm-8 col-lg-9">
+            {% if p.dpi_frente %}
+            <a class="btn btn-sm btn-outline-secondary" href="{{ p.dpi_frente.url }}" target="_blank" rel="noopener">
+              <i class="bx bx-file-blank me-1"></i> Ver / descargar
+            </a>
+            {% else %}
+            <span class="text-muted">No adjunto</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-4 col-lg-3">DPI (reverso)</dt>
+          <dd class="col-sm-8 col-lg-9">
+            {% if p.dpi_reverso %}
+            <a class="btn btn-sm btn-outline-secondary" href="{{ p.dpi_reverso.url }}" target="_blank" rel="noopener">
+              <i class="bx bx-file-blank me-1"></i> Ver / descargar
+            </a>
+            {% else %}
+            <span class="text-muted">No adjunto</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-4 col-lg-3">Evidencia del lugar</dt>
+          <dd class="col-sm-8 col-lg-9">
+            {% if p.evidencia_lugar %}
+            <a class="btn btn-sm btn-outline-secondary" href="{{ p.evidencia_lugar.url }}" target="_blank"
+              rel="noopener">
+              <i class="bx bx-file-blank me-1"></i> Ver / descargar
+            </a>
+            {% else %}
+            <span class="text-muted">No adjunto</span>
+            {% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    {# Aceptación (solo si hay nota o adjunto) #}
+    {% if p.aceptacion_nota or p.permiso_adjunto %}
+    <div class="card mt-3">
+      <div class="card-header d-flex align-items-center">
+        <i class="bx bx-check-circle me-2"></i>
+        <h5 class="mb-0">Aceptación</h5>
+      </div>
+      <div class="card-body">
+        {% if p.aceptacion_nota %}
+          <div class="mb-3">{{ p.aceptacion_nota|linebreaksbr }}</div>
+        {% endif %}
+        {% if p.permiso_adjunto %}
+          <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" href="{{ p.permiso_adjunto.url }}">
+            <i class="bx bx-file me-1"></i> Ver permiso adjunto
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+  </div>
+
+  {# ===== Columna DERECHA: Ubicación + Bitácora ===== #}
+  <div class="col-12 col-xl-5">
+
+    <div class="card mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">Ubicación</h5>
+        <small class="text-muted">Referencia de la solicitud</small>
+      </div>
+      <div class="card-body">
+        {% if p.ubicacion %}
+        <div class="mb-2">
+          <small class="text-muted d-block">Dirección</small>
+          <div>{{ p.ubicacion.direccion|default_if_none:"—" }}</div>
+        </div>
+        <div class="mb-2">
+          <small class="text-muted d-block">Barrio</small>
+          <div>
+            {% if p.ubicacion.barrio %}{{ p.ubicacion.barrio.nombre }}{% else %}—{% endif %}
+          </div>
+        </div>
+
+        {% if p.ubicacion.latitud and p.ubicacion.longitud %}
+        <div id="mapa-detalle-permiso" style="height: 290px; border-radius:.5rem; border:1px solid #ddd;"></div>
+        {% else %}
+        <div class="text-muted">Sin coordenadas.</div>
+        {% endif %}
+        {% else %}
+        <div class="text-muted">Sin ubicación registrada.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{# ===== Bitácora (ANCHO COMPLETO, igual que en Denuncias) ===== #}
+<div class="card mt-3">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h6 class="mb-0">Bitácora</h6>
+    <small class="text-muted">Cambios y eventos</small>
+  </div>
+  <div class="card-body">
+    {% if bitacoras %}
+      <ul class="list-unstyled mb-0">
+        {% for b in bitacoras %}
+          <li class="mb-3 pb-3 border-bottom">
+            <div class="d-flex justify-content-between">
+              <strong>{{ b.accion }}</strong>
+              <small class="text-muted">{{ b.fecha|date:"d/m/Y H:i" }}</small>
+            </div>
+
+            {% if b.estado_anterior or b.estado_nuevo %}
+              <div class="small text-muted">
+                Estado: {{ b.estado_anterior|default:"—" }} → {{ b.estado_nuevo|default:"—" }}
+              </div>
+            {% endif %}
+
+            {% if b.cambios is not None %}
+              {% with elid='cambios_'|add:b.id|stringformat:"s" %}
+                {{ b.cambios|json_script:elid }}
+                <details class="mt-1">
+                  <summary class="small text-muted">Ver cambios</summary>
+                  <pre class="small mb-0 pretty-json" data-source="{{ elid }}"></pre>
+                </details>
+              {% endwith %}
+            {% endif %}
+
+            {% if b.usuario %}
+              <div class="small text-muted">Por: {{ b.usuario.correo }}</div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="text-muted">Aún no hay eventos.</div>
+    {% endif %}
+  </div>
+</div>
+
+{# === Assets del mapa solo si hay coords === #}
+{% if p.ubicacion and p.ubicacion.latitud and p.ubicacion.longitud %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    (function(){
+      var el = document.getElementById('mapa-detalle-permiso');
+      if (!el) return;
+
+      var lat = {{ p.ubicacion.latitud|floatformat:"6" }};
+      var lng = {{ p.ubicacion.longitud|floatformat:"6" }};
+
+      // Igual que en denuncias: Carto Voyager, zoom 16, attribution
+      var map = L.map(el, { zoomControl: true }).setView([lat, lng], 16);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap, &copy; CARTO'
+      }).addTo(map);
+
+      L.marker([lat, lng]).addTo(map);
+    })();
+  </script>
+  <style>.leaflet-container img{max-width:none!important}</style>
+{% endif %}
+
+{# === Script único para pretty print de cambios (no se rompe si falta el JSON) === #}
+<script>
+  (function () {
+    var pres = document.querySelectorAll('pre.pretty-json[data-source]');
+    pres.forEach(function (pre) {
+      var id = pre.getAttribute('data-source');
+      var src = document.getElementById(id);
+      if (!src) return;
+      try {
+        var data = JSON.parse(src.textContent || '{}');
+        pre.textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        pre.textContent = '⚠ No fue posible mostrar los cambios.';
+      }
+    });
+  })();
+</script>
+{% endblock %}

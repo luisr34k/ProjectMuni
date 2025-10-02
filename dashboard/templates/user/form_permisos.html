@@ -1,0 +1,195 @@
+{# templates/user/permiso_form.html #}
+{% extends "user/index.html" %}
+{% load static %}
+
+{% block content %}
+
+<form method="post" action="{% url 'permiso_crear' %}" enctype="multipart/form-data" class="w-100">
+  {% csrf_token %}
+
+  {# Errores globales del form (non_field_errors) #}
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger mb-3">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  {# Resumen simple (opcional) cuando hay errores de campos #}
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        {% for field, errors in form.errors.items %}
+          {% if field != "__all__" %}
+            <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {# coords ocultos (el JS del mapa los llena) #}
+  <input type="hidden" id="id_latitud" name="latitud" value="{{ form.data.latitud|default_if_none:'' }}">
+  <input type="hidden" id="id_longitud" name="longitud" value="{{ form.data.longitud|default_if_none:'' }}">
+
+  <div class="row g-6">
+    <!-- IZQUIERDA -->
+    <div class="col-12 col-xl-6">
+      <div class="card h-100 mb-6">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="mb-0">Solicitud de permiso</h5>
+          <small class="text-muted">Completa la información</small>
+        </div>
+        <div class="card-body">
+
+          <!-- Tipo de permiso -->
+          <div class="row mb-6">
+            <label class="col-sm-3 col-form-label" for="{{ form.tipo_permiso.id_for_label }}">Tipo de permiso</label>
+            <div class="col-sm-9">
+              {{ form.tipo_permiso }}
+              {% if form.tipo_permiso.errors %}
+                <div class="text-danger small mt-1">{{ form.tipo_permiso.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Descripción -->
+          <div class="row mb-6">
+            <label class="col-sm-3 col-form-label" for="{{ form.descripcion.id_for_label }}">Descripción</label>
+            <div class="col-sm-9">
+              {{ form.descripcion }}
+              {% if form.descripcion.errors %}
+                <div class="text-danger small mt-1">{{ form.descripcion.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Fechas -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.comienza_en.id_for_label }}">Inicio del permiso</label>
+              {{ form.comienza_en }}
+              {% if form.comienza_en.errors %}
+                <div class="text-danger small mt-1">{{ form.comienza_en.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.termina_en.id_for_label }}">Fin del permiso</label>
+              {{ form.termina_en }}
+              {% if form.termina_en.errors %}
+                <div class="text-danger small mt-1">{{ form.termina_en.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Archivos -->
+          <div class="row mb-4">
+            <label class="col-sm-3 col-form-label" for="{{ form.dpi_frente.id_for_label }}">DPI frente</label>
+            <div class="col-sm-9">
+              {{ form.dpi_frente }}
+              {% if form.dpi_frente.errors %}
+                <div class="text-danger small mt-1">{{ form.dpi_frente.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <label class="col-sm-3 col-form-label" for="{{ form.dpi_reverso.id_for_label }}">DPI reverso</label>
+            <div class="col-sm-9">
+              {{ form.dpi_reverso }}
+              {% if form.dpi_reverso.errors %}
+                <div class="text-danger small mt-1">{{ form.dpi_reverso.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <label class="col-sm-3 col-form-label" for="{{ form.evidencia_lugar.id_for_label }}">Evidencia del lugar</label>
+            <div class="col-sm-9">
+              {{ form.evidencia_lugar }}
+              {% if form.evidencia_lugar.errors %}
+                <div class="text-danger small mt-1">{{ form.evidencia_lugar.errors.0 }}</div>
+              {% endif %}
+              <div class="form-text">Imágenes/PDF opcional.</div>
+            </div>
+          </div>
+
+          <!-- Checks -->
+          <div class="row mb-2">
+            <div class="col-sm-9 offset-sm-3">
+              <div class="form-check mb-2">
+                {{ form.requiere_pmt }}
+                <label class="form-check-label ms-2" for="{{ form.requiere_pmt.id_for_label }}">Requiere PMT</label>
+              </div>
+              <div class="form-check">
+                {{ form.requiere_conos }}
+                <label class="form-check-label ms-2" for="{{ form.requiere_conos.id_for_label }}">Requiere conos</label>
+              </div>
+              {# estos campos no muestran error porque son opcionales #}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- DERECHA -->
+    <div class="col-12 col-xl-6">
+      <div class="card h-100 mb-6">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="mb-0">Ubicación</h5>
+          <small class="text-muted">Selecciona en el mapa (opcional)</small>
+        </div>
+        <div class="card-body">
+
+          <!-- MAPA -->
+          <div class="mb-4">
+            <div id="mapa-permiso" style="height: 320px; border-radius: .5rem; border: 1px solid #ddd;"></div>
+            <button type="button" id="btn-geolocalizar" class="btn btn-sm btn-outline-secondary mt-2">Usar mi ubicación</button>
+          </div>
+
+          <!-- Dirección -->
+          <div class="row mb-6">
+            <label class="col-sm-3 col-form-label" for="{{ form.direccion.id_for_label }}">Dirección</label>
+            <div class="col-sm-9">
+              {{ form.direccion }}
+              {% if form.direccion.errors %}
+                <div class="text-danger small mt-1">{{ form.direccion.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Barrio -->
+          <div class="row mb-6">
+            <label class="col-sm-3 col-form-label" for="{{ form.barrio.id_for_label }}">Barrio</label>
+            <div class="col-sm-9">
+              {{ form.barrio }}
+              {% if form.barrio.errors %}
+                <div class="text-danger small mt-1">{{ form.barrio.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-end mt-2">
+    <div class="col-sm-10 col-xl-6">
+      <button type="submit" class="btn btn-primary">Enviar solicitud</button>
+      <a href="{% url 'mis_permisos' %}" class="btn btn-outline-secondary">Mis permisos</a>
+    </div>
+  </div>
+</form>
+
+{# === CARGAS: primero Leaflet CSS, luego Leaflet JS, luego tu script === #}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="{% static 'js/permisos_map.js' %}"></script>
+
+<style>
+  .leaflet-container img { max-width: none !important; }
+  .leaflet-container { font: inherit; }
+</style>
+
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "admin_panel/base_admin.html" %}
+{% block admin_title %}Panel{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-12 col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-1">Denuncias</h5>
+        <div class="display-6">{{ tot_denuncias }}</div>
+        <small class="text-muted">Total registradas</small>
+      </div>  
+    </div>
+  </div>
+
+  <div class="col-12 col-md-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Últimas denuncias</h5>
+        <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_denuncias' %}">Ver todas</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead><tr><th>#</th><th>Categoría</th><th>Estado</th><th>Creada</th></tr></thead>
+          <tbody>
+            {% for d in ultimas_denuncias %}
+              <tr>
+                <td><a href="{% url 'admin_denuncia_detalle' d.id %}">#{{ d.id }}</a></td>
+                <td>{{ d.categoria.nombre }}</td>
+                <td>{{ d.estado }}</td>
+                <td>{{ d.creada_en|date:"d/m/Y H:i" }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-4">Sin registros</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

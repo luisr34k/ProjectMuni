@@ -1,0 +1,18 @@
+{# templates/payments/pagos_home.html #}
+{% extends "user/index.html" %}
+{% block content %}
+<h4>Pagos – Tren de aseo</h4>
+{% if cuentas %}
+  <ul class="list-group">
+    {% for c in cuentas %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ c.titular }} — {{ c.codigo_catastral }}
+        <a class="btn btn-sm btn-primary" href="{% url 'crear_pago_online' c.id %}">Pagar en línea</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="alert alert-info">No tienes cuentas asociadas.</div>
+  <a class="btn btn-outline-primary" href="{% url 'vincular_cuenta' %}">Vincular una cuenta</a>
+{% endif %}
+{% endblock %}

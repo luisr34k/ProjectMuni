@@ -1,0 +1,150 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load widget_tweaks %}
+
+{% block admin_title %}Denuncia #{{ d.id }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Detalle -->
+  <div class="col-12 col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Denuncia #{{ d.id }}</h5>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'admin_denuncias' %}">← Volver</a>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Categoría</dt>
+          <dd class="col-sm-9">{{ d.categoria.nombre }}</dd>
+
+          <dt class="col-sm-3">Usuario</dt>
+          <dd class="col-sm-9">
+            {% if d.usuario %}
+              {{ d.usuario.correo }}
+            {% else %}
+              <span class="text-muted">Anónima</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-3">Estado</dt>
+          <dd class="col-sm-9">
+            {% if d.estado == "enviada" %}
+              <span class="badge bg-label-secondary">Enviada</span>
+            {% elif d.estado == "en revisión" %}
+              <span class="badge bg-label-info">En revisión</span>
+            {% elif d.estado == "en proceso" %}
+              <span class="badge bg-label-warning">En proceso</span>
+            {% elif d.estado == "resuelta" %}
+              <span class="badge bg-label-success">Resuelta</span>
+            {% elif d.estado == "rechazada" %}
+              <span class="badge bg-label-danger">Rechazada</span>
+            {% else %}
+              <span class="badge bg-label-secondary">{{ d.estado }}</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-3">Creada</dt>
+          <dd class="col-sm-9">{{ d.creada_en|date:"d/m/Y H:i" }}</dd>
+
+          {% if d.finalizada_en %}
+            <dt class="col-sm-3">Finalizada</dt>
+            <dd class="col-sm-9">{{ d.finalizada_en|date:"d/m/Y H:i" }}</dd>
+          {% endif %}
+
+          <dt class="col-sm-3">Descripción</dt>
+          <dd class="col-sm-9">{{ d.descripcion }}</dd>
+
+          {% if d.estado == "rechazada" and d.rechazo_motivo %}
+            <dt class="col-sm-3">Motivo rechazo</dt>
+            <dd class="col-sm-9">
+              <div class="alert alert-danger mb-0" role="alert">{{ d.rechazo_motivo }}</div>
+            </dd>
+          {% endif %}
+
+          {% if d.ubicacion %}
+            <dt class="col-sm-3">Dirección</dt>
+            <dd class="col-sm-9">{{ d.ubicacion.direccion|default:"—" }}</dd>
+
+            {% if d.ubicacion.barrio %}
+              <dt class="col-sm-3">Barrio</dt>
+              <dd class="col-sm-9">{{ d.ubicacion.barrio.nombre }}</dd>
+            {% endif %}
+
+            {% if d.ubicacion.latitud and d.ubicacion.longitud %}
+              <dt class="col-sm-3">Coordenadas</dt>
+              <dd class="col-sm-9">{{ d.ubicacion.latitud }}, {{ d.ubicacion.longitud }}</dd>
+            {% endif %}
+          {% endif %}
+
+          {% if d.evidencia %}
+            <dt class="col-sm-3">Evidencia</dt>
+            <dd class="col-sm-9">
+              <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ d.evidencia.url }}">Ver archivo</a>
+            </dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cambiar estado -->
+    <div class="col-12 col-lg-4">
+    <div class="card">
+      <div class="card-header"><h5 class="mb-0">Cambiar estado</h5></div>
+      <div class="card-body">
+        <form method="post" action="{% url 'admin_cambiar_estado' d.id %}" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label" for="id_estado">Estado</label>
+            {{ form_estado.estado|add_class:"form-select" }}
+          </div>
+
+          <div class="mb-3" id="bloque-rechazo" style="display: {% if d.estado == 'rechazada' %}block{% else %}none{% endif %};">
+            <label class="form-label" for="id_rechazo_motivo">Motivo del rechazo</label>
+            {{ form_estado.rechazo_motivo|add_class:"form-control" }}
+          </div>
+
+          <div id="bloque-resuelta" style="display: {% if d.estado == 'resuelta' %}block{% else %}none{% endif %};">
+            <div class="mb-3">
+              <label class="form-label" for="id_resolucion_nota">Nota de resolución (opcional)</label>
+              {{ form_estado.resolucion_nota|add_class:"form-control" }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="id_resolucion_evidencia">Evidencia de resolución (opcional)</label>
+              {{ form_estado.resolucion_evidencia|add_class:"form-control" }}
+              {% if d.resolucion_evidencia %}
+                <div class="mt-2">
+                  <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ d.resolucion_evidencia.url }}">
+                    Ver evidencia actual
+                  </a>
+                </div>
+              {% endif %}
+
+              
+            </div>
+          </div>
+
+          <button class="btn btn-primary">Guardar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const estadoSel = document.getElementById('id_estado');
+    const bloqueRechazo = document.getElementById('bloque-rechazo');
+    const bloqueResuelta = document.getElementById('bloque-resuelta');
+
+    function toggleBloques() {
+      const val = estadoSel.value;
+      bloqueRechazo.style.display = (val === 'rechazada') ? 'block' : 'none';
+      bloqueResuelta.style.display = (val === 'resuelta') ? 'block' : 'none';
+    }
+    estadoSel.addEventListener('change', toggleBloques);
+  })();
+</script>
+
+{% endblock %}

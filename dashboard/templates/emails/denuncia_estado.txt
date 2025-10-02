@@ -1,0 +1,13 @@
+{# templates/emails/denuncia_estado.txt #}
+Hola {{ nombre }},
+
+Tu denuncia #{{ id }} cambió de estado:
+De: {{ estado_anterior }}
+A : {{ estado_nuevo }}
+
+{% if estado_nuevo == "rechazada" and rechazo_motivo %}
+Motivo del rechazo:
+{{ rechazo_motivo }}
+{% endif %}
+
+Gracias.
