@@ -80,14 +80,18 @@ TEMPLATES = [
     },
 ]
 
-STATIC_URL = "/static/"
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"   # <— NECESARIO para collectstatic
 
 DASH_STATIC = BASE_DIR / "dashboard" / "static"
-STATICFILES_DIRS = [DASH_STATIC] if DASH_STATIC.exists() else []
+STATICFILES_DIRS = [
+    BASE_DIR / 'dashboard' / 'static',   # donde están tus assets en el repo
+]
 WSGI_APPLICATION = 'djangocrud.wsgi.application'
 
-
+if not DEBUG:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
