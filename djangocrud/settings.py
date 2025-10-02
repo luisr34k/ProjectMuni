@@ -80,12 +80,11 @@ TEMPLATES = [
     },
 ]
 
-STATIC_URL = '/static/'
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"   # <— NECESARIO para collectstatic
 
-STATICFILES_DIRS = [
-    BASE_DIR / 'dashboard' / 'static',
-]
-
+DASH_STATIC = BASE_DIR / "dashboard" / "static"
+STATICFILES_DIRS = [DASH_STATIC] if DASH_STATIC.exists() else []
 WSGI_APPLICATION = 'djangocrud.wsgi.application'
 
 
