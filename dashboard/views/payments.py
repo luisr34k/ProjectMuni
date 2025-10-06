@@ -196,7 +196,6 @@ def vincular_cuenta(request):
 
     return render(request, "pagos/vincular_cuenta.html", {"form": form})
 
-
 def _apply_dev_success_for_pago(pago_id: int) -> HttpResponse:
     pago = get_object_or_404(Pago, pk=pago_id)
 

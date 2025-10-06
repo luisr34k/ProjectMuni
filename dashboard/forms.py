@@ -64,7 +64,7 @@ class DenunciaForm(forms.ModelForm):
     # Texto (OBLIGATORIO)
     direccion = forms.CharField(
         required=True,
-        widget=forms.TextInput(attrs={'class':'form-control','placeholder':'Dirección exacta / Referencia'})
+        widget=forms.TextInput(attrs={'class':'form-control','placeholder':'Referencia / Calle'})
     )
     barrio = forms.ModelChoiceField(
         required=True,
@@ -251,7 +251,7 @@ class PermisoForm(forms.ModelForm):
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Dirección exacta / referencia'
+            'placeholder': 'Referencia / Calle'
         })
     )
     barrio = forms.ModelChoiceField(
