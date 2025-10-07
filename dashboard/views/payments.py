@@ -1,28 +1,31 @@
 # dashboard/views/payments.py
+
+# 1. Librerías estándar de Python
 import json
-from django.utils.timezone import now
-from decimal import Decimal
-from django.views.decorators.http import require_GET
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
-from django.shortcuts import get_object_or_404
-from django.urls import reverse
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from dashboard.models import CuentaServicio
-from django.db import transaction
-from dashboard.forms import VincularCuentaForm
-from django.contrib import messages
-from dashboard.models import CuentaServicio, Boleta
-from dashboard.utils.billing import ensure_boletas_pendientes
+import os
 from datetime import date
-from django.views.decorators.http import require_POST
+from decimal import Decimal
+
+# 2. Librerías de terceros (Django y otras)
 from django.conf import settings
-from dashboard.models import CuentaServicio
-from decimal import Decimal, ROUND_HALF_UP
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.http import (
+    JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+)
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.timezone import now
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
+from svix.webhooks import Webhook
+
+# 3. Módulos de la aplicación
+from dashboard.forms import VincularCuentaForm
 from dashboard.models import CuentaServicio, Boleta, Pago, TransaccionOnline
 from dashboard.utils import recurrente as rec
+from dashboard.utils.billing import ensure_boletas_pendientes
 
 FEE_RATE  = Decimal("0.045")   # 4.5 %
 FEE_FIXED = Decimal("2.00")    # Q2 fijo por transacción
@@ -83,59 +86,96 @@ def recurrente_cancel(request):
 @csrf_exempt
 def recurrente_webhook(request):
     """
-    Recibe eventos de Recurrente. Manejo idempotente por orden_id (payment_intent id).
+    Webhook de Recurrente con verificación de firma (Svix) + idempotencia.
+    Soporta payloads tipo:
+      a) {"type": "payment.succeeded", "data": {...}}
+      b) {"event_type": "payment_intent.succeeded", ... (flat) }
     """
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    secret = os.getenv("RECURRENTE_WEBHOOK_SECRET", "")
+    if not secret:
+        return HttpResponseBadRequest("Missing signing secret")
+
+    # 1) Verificar firma (usa headers 'svix-*')
     try:
-        payload = json.loads(request.body.decode("utf-8") or "{}")
-    except Exception:
-        return JsonResponse({"error": "invalid json"}, status=400)
+        payload_raw = request.body  # bytes
+        headers = {k: v for k, v in request.headers.items()}
+        verified = Webhook(secret).verify(payload_raw, headers)
+        # verified es un dict seguro
+    except Exception as e:
+        return HttpResponseBadRequest(f"Invalid signature: {e}")
 
-    event_type = payload.get("event_type")
-    intent_id  = payload.get("id")  # pa_XXXX segun doc
-    if not intent_id:
-        return JsonResponse({"error": "missing id"}, status=400)
+    # 2) Normalizar estructura
+    #    - si viene {type, data}, úsalo.
+    #    - si viene plano con event_type, mapéalo.
+    event_type = verified.get("type") or verified.get("event_type")
+    data_obj   = verified.get("data") or verified  # si no hay data, usa raíz
 
-    # Idempotencia por orden_id
-    with transaction.atomic():
-        tx, created = TransaccionOnline.objects.select_for_update().get_or_create(
-            orden_id=intent_id,
-            defaults={"estado": "pending", "payload": payload}
-        )
-        # Si ya está finalizada, salimos
-        if tx.estado in ("success", "failed"):
-            return HttpResponse(status=200)
+    # Intenta encontrar un ID “externo único” para idempotencia
+    # Prioriza data_obj["id"] (payment id / intent id), luego reference, etc.
+    external_id = (
+        data_obj.get("id")
+        or data_obj.get("payment_id")
+        or data_obj.get("reference")
+        or verified.get("id")  # fallback
+    )
+    if not external_id:
+        return JsonResponse({"error": "missing external id"}, status=400)
 
-        # Obtén pago_id desde metadata (recomendado por Recurrente)
-        meta = payload.get("metadata") or {}
-        pago_id = meta.get("pago_id")
-
-        if not pago_id:
-            # Como fallback podrías crear un log o marcar failed
+    # metadata debe incluir "pago_id" (lo envías al crear el checkout)
+    meta = data_obj.get("metadata") or verified.get("metadata") or {}
+    pago_id = meta.get("pago_id")
+    if not pago_id:
+        # registra la transacción como fallida para trazabilidad
+        with transaction.atomic():
+            tx, _ = TransaccionOnline.objects.select_for_update().get_or_create(
+                orden_id=external_id,
+                defaults={"estado": "pending", "payload": verified}
+            )
             tx.estado = "failed"
-            tx.payload = payload
+            tx.payload = verified
             tx.save(update_fields=["estado", "payload", "actualizado_en"])
-            return JsonResponse({"error": "missing pago_id in metadata"}, status=400)
+        return JsonResponse({"error": "missing pago_id in metadata"}, status=400)
+
+    # 3) Idempotencia y actualización del dominio
+    with transaction.atomic():
+        tx, _ = TransaccionOnline.objects.select_for_update().get_or_create(
+            orden_id=external_id,
+            defaults={"estado": "pending", "payload": verified}
+        )
+        if tx.estado in ("success", "failed"):
+            return HttpResponse(status=200)  # ya procesado
 
         pago = Pago.objects.select_for_update().get(pk=pago_id)
 
-        if event_type == "payment_intent.succeeded":
-            # Marca referencia + distribuye en boletas
-            pago.referencia = intent_id
-            pago.save(update_fields=["referencia"])  # metodo ya es 'online'
+        # Acepta ambas nomenclaturas de eventos
+        succeeded_events = {"payment.succeeded", "payment_intent.succeeded"}
+        failed_events    = {"payment.failed", "payment_intent.failed", "payment_intent.canceled"}
 
+        if event_type in succeeded_events:
+            # Marca referencia y distribuye
+            if not pago.referencia:
+                pago.referencia = external_id
+                pago.save(update_fields=["referencia"])
             pago.distribuir_en_boletas()
 
             tx.estado = "success"
             tx.pago = pago
-            tx.payload = payload
+            tx.payload = verified
             tx.save(update_fields=["estado", "pago", "payload", "actualizado_en"])
-        elif event_type in ("payment_intent.failed", "payment_intent.canceled"):
+
+            # TODO: enviar recibo por correo aquí si ya tienes SMTP en prod
+            # send_receipt_email(pago)
+        elif event_type in failed_events:
             tx.estado = "failed"
-            tx.payload = payload
+            tx.payload = verified
             tx.save(update_fields=["estado", "payload", "actualizado_en"])
+            # (Opcional) marcar pago/boletas como fallido si manejas ese estado
         else:
-            # Otros eventos: guarda payload para referencia
-            tx.payload = payload
+            # Otros eventos: conserva payload para auditoría
+            tx.payload = verified
             tx.save(update_fields=["payload", "actualizado_en"])
 
     return HttpResponse(status=200)
