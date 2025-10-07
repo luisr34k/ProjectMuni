@@ -54,6 +54,7 @@ urlpatterns = [
     path('pagos/recurrente/success/', pay_views.recurrente_success, name='rec_success'),
     path('pagos/recurrente/cancel/', pay_views.recurrente_cancel, name='rec_cancel'),
     
+    
     # dashboard/urls.py
     path('pagos/recurrente/dev-simular-success/',     pay_views.recurrente_dev_simular_success,     name='rec_dev_simular_success'),
     path('pagos/recurrente/dev-simular-success-get/', pay_views.recurrente_dev_simular_success_get, name='rec_dev_simular_success_get'),

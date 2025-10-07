@@ -58,8 +58,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-RECURRENTE_PUBLIC_KEY = os.getenv("RECURRENTE_PUBLIC_KEY", "pk_test_QCARFQcxoRLfrd4Dgtfowi2a0R0Ho5sAKVsXvEJ1e5zLPpCvSYIdeZriy")
-RECURRENTE_SECRET_KEY = os.getenv("RECURRENTE_SECRET_KEY", "sk_test_BFIDttVuyEtCzC2472LjJYAGoAKhQf89Rro6u7GHGCOoc4LV9oqLXvDbk")
+RECURRENTE_PUBLIC_KEY = os.getenv("RECURRENTE_PUBLIC_KEY", "")
+RECURRENTE_SECRET_KEY = os.getenv("RECURRENTE_SECRET_KEY", "")
+SVIX_WEBHOOK_SECRET   = os.getenv("SVIX_WEBHOOK_SECRET", "")
+
 
 ROOT_URLCONF = 'djangocrud.urls'
 
