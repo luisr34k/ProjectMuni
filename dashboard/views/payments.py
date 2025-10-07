@@ -95,7 +95,8 @@ def recurrente_webhook(request):
     if request.method != "POST":
         return HttpResponseBadRequest("Invalid method")
 
-    secret = os.getenv("RECURRENTE_WEBHOOK_SECRET", "")
+    secret = settings.RECURRENTE_WEBHOOK_SECRET
+
     if not secret:
         return HttpResponseBadRequest("Missing signing secret")
 
