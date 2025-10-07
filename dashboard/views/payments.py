@@ -5,6 +5,7 @@ import json
 import os
 from datetime import date
 from decimal import Decimal
+from decimal import ROUND_HALF_UP
 
 # 2. Librerías de terceros (Django y otras)
 from django.conf import settings
