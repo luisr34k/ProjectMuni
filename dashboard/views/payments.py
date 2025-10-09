@@ -27,6 +27,8 @@ from dashboard.forms import VincularCuentaForm
 from dashboard.models import CuentaServicio, Boleta, Pago, TransaccionOnline
 from dashboard.utils import recurrente as rec
 from dashboard.utils.billing import ensure_boletas_pendientes
+from dashboard.utils.email_utils import send_receipt_email
+
 
 FEE_RATE  = Decimal("0.045")   # 4.5 %
 FEE_FIXED = Decimal("2.00")    # Q2 fijo por transacción
@@ -277,6 +279,12 @@ def recurrente_webhook(request):
             tx.pago = pago
             tx.payload = verified
             tx.save(update_fields=["estado", "pago", "payload", "actualizado_en"])
+            
+            try:
+                send_receipt_email(pago)
+            except Exception:
+                # aquí puedes usar logging, e.g. logger.exception("Error enviando recibo")
+                pass
 
         elif event_type in failed_events:
             tx.estado = "failed"

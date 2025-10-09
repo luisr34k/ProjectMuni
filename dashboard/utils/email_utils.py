@@ -1,14 +1,15 @@
 # dashboard/utils/email_utils.py
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
 from django.conf import settings
+from django.core.mail import send_mail, EmailMultiAlternatives
+from django.template.loader import render_to_string
 
+def _user_email(u):
+    if not u:
+        return ""
+    # Soporta ambos campos
+    return getattr(u, "email", "") or getattr(u, "correo", "")
 
 def _send(to_email: str, subject: str, template_name: str, ctx: dict):
-    """
-    Renderiza un template de email y lo envía en texto plano.
-    Si luego quieres HTML, añade html_message.
-    """
     body = render_to_string(template_name, ctx)  # templates/emails/*.txt
     send_mail(
         subject=subject,
@@ -19,55 +20,50 @@ def _send(to_email: str, subject: str, template_name: str, ctx: dict):
     )
 
 def notify_denuncia_creada(denuncia):
-    """
-    Enviar confirmación al ciudadano cuando crea la denuncia.
-    No se envía si es anónima (usuario == None).
-    """
-    if not denuncia.usuario or not denuncia.usuario.correo:
+    to = _user_email(getattr(denuncia, "usuario", None))
+    if not to:
         return
-
     ctx = {
-        "nombre": denuncia.usuario.nombre or denuncia.usuario.get_username(),
+        "nombre": getattr(denuncia.usuario, "nombre", "") or denuncia.usuario.get_username(),
         "id": denuncia.id,
-        "categoria": getattr(denuncia.categoria, "nombre", ""),
-        "fecha": denuncia.creada_en,
-        "estado": denuncia.estado,
-        "descripcion": denuncia.descripcion[:200],
+        "categoria": getattr(getattr(denuncia, "categoria", None), "nombre", ""),
+        "fecha": getattr(denuncia, "creada_en", ""),
+        "estado": getattr(denuncia, "estado", ""),
+        "descripcion": (getattr(denuncia, "descripcion", "") or "")[:200],
     }
     _send(
-        to_email=denuncia.usuario.correo,
+        to_email=to,
         subject=f"Tu denuncia #{denuncia.id} fue recibida",
         template_name="emails/denuncia_creada.txt",
         ctx=ctx,
     )
 
 def notify_estado_cambio(denuncia, estado_anterior: str, estado_nuevo: str):
-    if not denuncia.usuario or not denuncia.usuario.correo:
+    to = _user_email(getattr(denuncia, "usuario", None))
+    if not to:
         return
-
     ctx = {
-        "nombre": denuncia.usuario.nombre or denuncia.usuario.get_username(),
+        "nombre": getattr(denuncia.usuario, "nombre", "") or denuncia.usuario.get_username(),
         "id": denuncia.id,
         "estado_anterior": estado_anterior,
         "estado_nuevo": estado_nuevo,
-        "categoria": getattr(denuncia.categoria, "nombre", ""),
-        "rechazo_motivo": (denuncia.rechazo_motivo or "").strip(),
+        "categoria": getattr(getattr(denuncia, "categoria", None), "nombre", ""),
+        "rechazo_motivo": (getattr(denuncia, "rechazo_motivo", "") or "").strip(),
     }
     _send(
-        to_email=denuncia.usuario.correo,
+        to_email=to,
         subject=f"Actualización de denuncia #{denuncia.id}: {estado_nuevo}",
         template_name="emails/denuncia_estado.txt",
         ctx=ctx,
     )
-    
+
 def notify_permiso_estado(permiso, estado_anterior: str, estado_nuevo: str):
-    if not permiso.usuario or not permiso.usuario.correo:
+    to = _user_email(getattr(permiso, "usuario", None))
+    if not to:
         return
 
-    # --- obtener URL del adjunto de forma segura ---
     adjunto_url = ""
     f = getattr(permiso, "permiso_adjunto", None)
-    # El FileField "es falsy" si no hay archivo; además comprobamos name
     if f and getattr(f, "name", ""):
         try:
             adjunto_url = f.url
@@ -75,19 +71,51 @@ def notify_permiso_estado(permiso, estado_anterior: str, estado_nuevo: str):
             adjunto_url = ""
 
     ctx = {
-        "nombre": permiso.usuario.nombre or permiso.usuario.get_username(),
+        "nombre": getattr(permiso.usuario, "nombre", "") or permiso.usuario.get_username(),
         "id": permiso.id,
         "estado_anterior": estado_anterior,
         "estado_nuevo": estado_nuevo,
-        "tipo": getattr(permiso.tipo_permiso, "nombre", ""),
-        "nota": (permiso.aceptacion_nota or "").strip(),
-        "observaciones": (permiso.observaciones or "").strip(),
+        "tipo": getattr(getattr(permiso, "tipo_permiso", None), "nombre", ""),
+        "nota": (getattr(permiso, "aceptacion_nota", "") or "").strip(),
+        "observaciones": (getattr(permiso, "observaciones", "") or "").strip(),
         "adjunto_url": adjunto_url,
     }
-
     _send(
-        to_email=permiso.usuario.correo,
+        to_email=to,
         subject=f"Actualización de permiso #{permiso.id}: {estado_nuevo}",
         template_name="emails/permiso_estado.txt",
         ctx=ctx,
     )
+
+def send_receipt_email(pago) -> bool:
+    user = getattr(getattr(pago, "cuenta", None), "usuario", None)
+    to = _user_email(user)
+    if not to:
+        return False
+
+    cuenta = pago.cuenta
+    ctx = {
+        "pago": pago,
+        "cuenta": cuenta,
+        "municipalidad": "Municipalidad de San Luis",
+        "from_email": settings.DEFAULT_FROM_EMAIL,
+        "nit": getattr(cuenta, "nit", ""),
+        "titular": getattr(cuenta, "titular", ""),
+        "codigo_catastral": getattr(cuenta, "codigo_catastral", ""),
+        "referencia": getattr(pago, "referencia", f"pa_{pago.pk}"),
+    }
+
+    subject = f"Recibo de pago #{pago.pk} — Tren de Aseo"
+    text_body = render_to_string("emails/recibo_pago.txt", ctx)
+    html_body = render_to_string("emails/recibo_pago.html", ctx)
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[to],
+        headers={"Reply-To": settings.DEFAULT_FROM_EMAIL},
+    )
+    msg.attach_alternative(html_body, "text/html")
+    msg.send(fail_silently=False)
+    return True

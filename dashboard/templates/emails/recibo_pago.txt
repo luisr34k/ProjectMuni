@@ -1,0 +1,11 @@
+{{ municipalidad }}
+Recibo de pago #{{ pago.pk }}
+
+Titular: {{ titular }}
+NIT: {{ nit }}
+Código catastral: {{ codigo_catastral }}
+
+Monto pagado: Q {{ pago.monto }}
+Referencia: {{ referencia }}
+
+Gracias por tu pago. Puedes consultar tu historial en el portal.

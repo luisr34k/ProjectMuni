@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <body style="font-family: Arial, sans-serif; color:#222;">
+    <h2 style="margin-bottom:4px;">{{ municipalidad }}</h2>
+    <p style="margin-top:0;color:#777;">Recibo de pago #{{ pago.pk }}</p>
+
+    <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
+      <tr>
+        <td><strong>Titular:</strong></td><td>{{ titular }}</td>
+      </tr>
+      <tr>
+        <td><strong>NIT:</strong></td><td>{{ nit }}</td>
+      </tr>
+      <tr>
+        <td><strong>Código catastral:</strong></td><td>{{ codigo_catastral }}</td>
+      </tr>
+      <tr>
+        <td><strong>Monto pagado:</strong></td><td>Q {{ pago.monto }}</td>
+      </tr>
+      <tr>
+        <td><strong>Referencia:</strong></td><td>{{ referencia }}</td>
+      </tr>
+    </table>
+
+    <p style="margin-top:16px;">
+      Gracias por tu pago. Puedes consultar tu historial en el portal.
+    </p>
+
+    <p style="font-size:12px;color:#888;">
+      Enviado desde {{ from_email }}
+    </p>
+  </body>
+</html>
