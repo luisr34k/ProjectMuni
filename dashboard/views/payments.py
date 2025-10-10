@@ -29,6 +29,7 @@ from dashboard.models import CuentaServicio, Boleta, Pago, TransaccionOnline
 from dashboard.utils import recurrente as rec
 from dashboard.utils.billing import ensure_boletas_pendientes
 from dashboard.utils.email_utils import send_receipt_email
+from dashboard.utils.email_utils import _user_email
 
 log = logging.getLogger(__name__)
 FEE_RATE  = Decimal("0.045")   # 4.5 %

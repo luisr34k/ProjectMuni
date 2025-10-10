@@ -34,6 +34,279 @@
   <!-- Aquí irá el contenido dinámico -->
   
     <h4 class="fw-bold py-3 mb-4">Bienvenido al sistema ciudadano</h4>
-    <p>Desde aquí puede gestionar denuncias, permisos y pagos.</p>
+
+    <!-- ===== Tren de Aseo – Administración (Mock) ===== -->
+
+<!-- Breadcrumb + título -->
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="#">Administración</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Tren de Aseo</li>
+      </ol>
+    </nav>
+    <h4 class="mb-0">Tren de Aseo <span class="text-muted fw-normal fs-6">/ Pagos y cuentas</span></h4>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="#" class="btn btn-primary"><i class="bx bx-plus me-2"></i>Nuevo pago manual</a>
+    <a href="#" class="btn btn-outline-secondary"><i class="bx bx-download me-2"></i>Exportar</a>
+  </div>
+</div>
+
+<!-- Resumen rápido -->
+<div class="row g-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="avatar me-3"><span class="avatar-initial rounded bg-label-success"><i class="bx bx-check"></i></span></div>
+          <div>
+            <small class="text-muted">Pagados (mes)</small>
+            <h5 class="mb-0">132</h5>
+          </div>
+          <div class="ms-auto text-success fw-medium">Q 18,250.00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="avatar me-3"><span class="avatar-initial rounded bg-label-warning"><i class="bx bx-time"></i></span></div>
+          <div>
+            <small class="text-muted">Pendientes</small>
+            <h5 class="mb-0">57</h5>
+          </div>
+          <div class="ms-auto text-warning fw-medium">Q 7,410.00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="avatar me-3"><span class="avatar-initial rounded bg-label-danger"><i class="bx bx-error"></i></span></div>
+          <div>
+            <small class="text-muted">Vencidos</small>
+            <h5 class="mb-0">21</h5>
+          </div>
+          <div class="ms-auto text-danger fw-medium">Q 3,150.00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="avatar me-3"><span class="avatar-initial rounded bg-label-info"><i class="bx bx-user"></i></span></div>
+          <div>
+            <small class="text-muted">Cuentas activas</small>
+            <h5 class="mb-0">894</h5>
+          </div>
+          <div class="ms-auto text-muted fw-medium">Tren de Aseo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">Filtros</h5>
+  </div>
+  <div class="card-body">
+    <form class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Estado</label>
+        <select class="form-select">
+          <option value="">Todos</option>
+          <option>PAGADO</option>
+          <option>PENDIENTE</option>
+          <option>VENCIDO</option>
+          <option>ANULADO</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Método</label>
+        <select class="form-select">
+          <option value="">Todos</option>
+          <option>Recurrente</option>
+          <option>Tesorería</option>
+          <option>Exoneración</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Periodo</label>
+        <input type="month" class="form-control" value="2025-10">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Cuenta de servicio (ID)</label>
+        <input type="text" class="form-control" placeholder="p.ej. 000123">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Propietario / NIT / Correo</label>
+        <input type="text" class="form-control" placeholder="Buscar…">
+      </div>
+      <div class="col-md-8 d-flex align-items-end justify-content-end gap-2">
+        <a href="#" class="btn btn-outline-secondary"><i class="bx bx-reset me-2"></i>Limpiar</a>
+        <a href="#" class="btn btn-primary"><i class="bx bx-search me-2"></i>Aplicar filtros</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tabla -->
+<div class="card">
+  <div class="card-datatable table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th class="text-nowrap">#</th>
+          <th class="text-nowrap">Cuenta Servicio</th>
+          <th class="text-nowrap">Propietario</th>
+          <th class="text-nowrap">Dirección</th>
+          <th class="text-nowrap">Periodo</th>
+          <th class="text-nowrap text-end">Monto</th>
+          <th class="text-nowrap">Método</th>
+          <th class="text-nowrap">Estado</th>
+          <th class="text-nowrap">Creado</th>
+          <th class="text-nowrap">Actualizado</th>
+          <th class="text-nowrap text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Ejemplo 1 -->
+        <tr>
+          <td>2451</td>
+          <td><span class="fw-medium">CS-000123</span></td>
+          <td><span class="text-heading">María López</span><br><small class="text-muted">NIT 1234567-8</small></td>
+          <td>Zona 1, 3a Av. 4-55</td>
+          <td>2025-10</td>
+          <td class="text-end">Q 120.00</td>
+          <td><span class="badge bg-label-info">Recurrente</span></td>
+          <td><span class="badge bg-label-success">PAGADO</span></td>
+          <td><small>02/10/2025</small></td>
+          <td><small>02/10/2025</small></td>
+          <td class="text-center">
+            <div class="btn-group btn-group-sm">
+              <a href="#" class="btn btn-outline-secondary"><i class="bx bx-show"></i></a>
+              <a href="#" class="btn btn-outline-secondary"><i class="bx bx-printer"></i></a>
+              <a href="#" class="btn btn-outline-danger"><i class="bx bx-trash"></i></a>
+            </div>
+          </td>
+        </tr>
+        <!-- Ejemplo 2 -->
+        <tr>
+          <td>2452</td>
+          <td><span class="fw-medium">CS-000784</span></td>
+          <td><span class="text-heading">Carlos Pérez</span><br><small class="text-muted">NIT 778899-0</small></td>
+          <td>Col. El Milagro, Mz A Lt 4</td>
+          <td>2025-10</td>
+          <td class="text-end">Q 95.00</td>
+          <td><span class="badge bg-label-secondary">Tesorería</span></td>
+          <td><span class="badge bg-label-warning">PENDIENTE</span></td>
+          <td><small>02/10/2025</small></td>
+          <td><small>—</small></td>
+          <td class="text-center">
+            <div class="btn-group btn-group-sm">
+              <a href="#" class="btn btn-outline-secondary"><i class="bx bx-show"></i></a>
+              <a href="#" class="btn btn-outline-primary"><i class="bx bx-credit-card"></i></a>
+              <a href="#" class="btn btn-outline-danger"><i class="bx bx-trash"></i></a>
+            </div>
+          </td>
+        </tr>
+        <!-- Ejemplo 3 -->
+        <tr>
+          <td>2453</td>
+          <td><span class="fw-medium">CS-000555</span></td>
+          <td><span class="text-heading">Ana García</span><br><small class="text-muted">NIT 445566-1</small></td>
+          <td>B. Centro, 6a Calle 2-10</td>
+          <td>2025-09</td>
+          <td class="text-end">Q 95.00</td>
+          <td><span class="badge bg-label-info">Recurrente</span></td>
+          <td><span class="badge bg-label-danger">VENCIDO</span></td>
+          <td><small>02/09/2025</small></td>
+          <td><small>30/09/2025</small></td>
+          <td class="text-center">
+            <div class="btn-group btn-group-sm">
+              <a href="#" class="btn btn-outline-secondary"><i class="bx bx-show"></i></a>
+              <a href="#" class="btn btn-outline-primary"><i class="bx bx-receipt"></i></a>
+              <a href="#" class="btn btn-outline-danger"><i class="bx bx-x-circle"></i></a>
+            </div>
+          </td>
+        </tr>
+        <!-- Ejemplo 4 -->
+        <tr>
+          <td>2454</td>
+          <td><span class="fw-medium">CS-001010</span></td>
+          <td><span class="text-heading">Jorge Ramírez</span><br><small class="text-muted">NIT 101010-1</small></td>
+          <td>Zona 2, 2a Av. 1-01</td>
+          <td>2025-10</td>
+          <td class="text-end">Q 110.00</td>
+          <td><span class="badge bg-label-secondary">Tesorería</span></td>
+          <td><span class="badge bg-label-secondary">ANULADO</span></td>
+          <td><small>02/10/2025</small></td>
+          <td><small>02/10/2025</small></td>
+          <td class="text-center">
+            <div class="btn-group btn-group-sm">
+              <a href="#" class="btn btn-outline-secondary"><i class="bx bx-show"></i></a>
+              <a href="#" class="btn btn-outline-dark"><i class="bx bx-refresh"></i></a>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginación -->
+  <div class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <small class="text-muted">Mostrando 1–10 de 1,248 registros</small>
+    <ul class="pagination mb-0">
+      <li class="page-item disabled"><a class="page-link" href="#"><i class="bx bx-chevron-left"></i></a></li>
+      <li class="page-item active"><a class="page-link" href="#">1</a></li>
+      <li class="page-item"><a class="page-link" href="#">2</a></li>
+      <li class="page-item"><a class="page-link" href="#">3</a></li>
+      <li class="page-item"><a class="page-link" href="#"><i class="bx bx-chevron-right"></i></a></li>
+    </ul>
+  </div>
+</div>
+
+<!-- Panel lateral de “Resumen de cuenta” (solo markup, sin JS) -->
+<div class="row mt-4">
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">Resumen de cuenta</h5>
+        <a href="#" class="btn btn-sm btn-outline-secondary">Editar</a>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5">Cuenta Servicio:</dt><dd class="col-7">CS-000123</dd>
+          <dt class="col-5">Propietario:</dt><dd class="col-7">María López</dd>
+          <dt class="col-5">Dirección:</dt><dd class="col-7">Zona 1, 3a Av. 4-55</dd>
+          <dt class="col-5">Tarifa actual:</dt><dd class="col-7">Q 120.00</dd>
+          <dt class="col-5">Estado:</dt><dd class="col-7"><span class="badge bg-label-success">ACTIVA</span></dd>
+        </dl>
+      </div>
+      <div class="card-footer d-flex gap-2 flex-wrap">
+        <a href="#" class="btn btn-sm btn-primary"><i class="bx bx-receipt me-1"></i>Generar boleta</a>
+        <a href="#" class="btn btn-sm btn-outline-secondary"><i class="bx bx-history me-1"></i>Ver historial</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-8">
+    <div class="alert alert-info mb-0">
+      <i class="bx bx-info-circle me-2"></i>
+      Este módulo es un mock de referencia visual para tu documento. No realiza acciones reales.
+    </div>
+  </div>
+</div>
+<!-- ===== /Fin mock ===== -->
+
   
 {% endblock content %}
