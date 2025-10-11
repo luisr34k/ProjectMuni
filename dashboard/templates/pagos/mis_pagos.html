@@ -1,0 +1,128 @@
+{% extends "user/index.html" %}
+{% load static %}
+
+{% block content %}
+<div class="card">
+  <div class="d-flex justify-content-between align-items-center">
+    <h5 class="card-header mb-0">Mis pagos</h5>
+    <div class="pe-3">
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'mis_pagos_csv' %}">
+        <i class="bx bx-download me-1"></i> Exportar CSV
+      </a>
+    </div>
+  </div>
+
+  <div class="table-responsive text-nowrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Fecha</th>
+          <th>Método</th>
+          <th>Referencia</th>
+          <th class="text-end">Total</th>
+          <th>Estado</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody class="table-border-bottom-0">
+        {% for p in pagos %}
+        <tr>
+          <td>#{{ p.id }}</td>
+
+          <!-- Usa p.fecha si renombraste creado_en -> fecha en el modelo/admin -->
+          <td>{{ p.fecha|date:"d/m/Y H:i" }}</td>
+
+          <td>
+            {# Si guardas “online”, “efectivo”, etc. #}
+            {% with metodo=p.metodo|default:"online" %}
+              {% if metodo == "online" %}
+                <span class="badge bg-label-primary"><i class="bx bx-credit-card me-1"></i> Online</span>
+              {% elif metodo == "efectivo" %}
+                <span class="badge bg-label-secondary"><i class="bx bx-money me-1"></i> Efectivo</span>
+              {% else %}
+                <span class="badge bg-label-info">{{ metodo|capfirst }}</span>
+              {% endif %}
+            {% endwith %}
+          </td>
+
+          <td>
+            {% if p.referencia %}
+              <code>{{ p.referencia }}</code>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <td class="text-end">Q {{ p.monto|floatformat:2 }}</td>
+
+          <td>
+            {# Si tienes TransaccionOnline.estado asociado, pásalo en la vista o usa una prop calculada #}
+            {% with estado=p.tx_estado|default:"success" %}
+              {% if estado == "success" %}
+                <span class="badge bg-label-success">Pagado</span>
+              {% elif estado == "failed" %}
+                <span class="badge bg-label-danger">Fallido</span>
+              {% else %}
+                <span class="badge bg-label-warning">{{ estado|capfirst }}</span>
+              {% endif %}
+            {% endwith %}
+          </td>
+
+          <td class="text-center">
+            <div class="d-flex gap-2 justify-content-center">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'recibo_pago' p.id %}" title="Ver recibo">
+                <i class="bx bx-show"></i>
+              </a>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'recibo_pago_pdf' p.id %}" title="Descargar PDF">
+                <i class="bx bx-download"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-5">Aún no tienes pagos.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pagos.paginator.num_pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <div class="text-muted">
+      Página {{ pagos.number }} de {{ pagos.paginator.num_pages }}
+    </div>
+    <nav>
+      <ul class="pagination mb-0">
+        {% if pagos.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ pagos.previous_page_number }}" aria-label="Anterior">&laquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        {% for num in pagos.paginator.page_range %}
+          {% if num == pagos.number %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num >= pagos.number|add:-2 and num <= pagos.number|add:2 %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if pagos.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ pagos.next_page_number }}" aria-label="Siguiente">&raquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

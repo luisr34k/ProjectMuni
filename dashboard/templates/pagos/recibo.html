@@ -1,0 +1,99 @@
+{# templates/pagos/recibo.html #}
+{% extends "user/index.html" %}
+{% load static %}
+
+{% block content %}
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Recibo de pago #{{ pago.id }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --fg:#1d2433; --muted:#6b7280; --border:#e5e7eb; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--fg); margin:24px; }
+    h1 { margin:0 0 8px; font-size:22px; }
+    .muted { color:var(--muted); }
+    .card { border:1px solid var(--border); border-radius:12px; padding:20px; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px 24px; }
+    .grid dt { font-weight:600; }
+    table { width:100%; border-collapse: collapse; margin-top:16px; }
+    th, td { padding:10px; border-bottom:1px solid var(--border); text-align:left; font-size:14px; }
+    .right { text-align:right; }
+    .total { font-weight:700; }
+    .actions { margin:16px 0 8px; }
+    .btn { display:inline-block; padding:10px 14px; border:1px solid var(--border); border-radius:10px; text-decoration:none; color:var(--fg); }
+    @media print {
+      .actions { display:none; }
+      body { margin:0; }
+      .card { border:none; }
+    }
+  </style>
+</head>
+<body>
+
+
+  <h1>{{ municipalidad }}</h1>
+  <div class="muted">Recibo de pago #{{ pago.id }}</div>
+
+  <div class="card" style="margin-top:12px;">
+    <dl class="grid">
+      <dt>Titular:</dt>            <dd>{{ cuenta.titular }}</dd>
+      <dt>NIT:</dt>                <dd>{{ cuenta.nit }}</dd>
+      <dt>Código catastral:</dt>   <dd>{{ cuenta.codigo_catastral }}</dd>
+      <dt>Fecha de pago:</dt>      <dd>{{ pago.creado_en|date:"Y-m-d H:i" }}</dd>
+      <dt>Método:</dt>
+      <dd>
+        {% if card.last4 %}
+          Tarjeta {{ card.network|default:"" }} •••• {{ card.last4 }}
+          {% if card.exp_month and card.exp_year %}(exp {{ card.exp_month }}/{{ card.exp_year }}){% endif %}
+        {% else %}
+          {{ pago.metodo|capfirst }}
+        {% endif %}
+      </dd>
+      <dt>Referencia:</dt>         <dd>{{ referencia }}</dd>
+    </dl>
+
+    {% if aplicaciones %}
+      <h3 style="margin-top:18px;">Boletas aplicadas</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Periodo</th>
+            <th>Boleta</th>
+            <th class="right">Monto aplicado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in aplicaciones %}
+            <tr>
+              <td>
+                {% if a.boleta and a.boleta.periodo %}
+                  {{ a.boleta.periodo.mes }}/{{ a.boleta.periodo.anio }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>#{{ a.boleta.id }}</td>
+              <td class="right">Q {{ a.monto_aplicado|floatformat:2 }}</td>
+            </tr>
+          {% endfor %}
+          <tr>
+            <td></td>
+            <td class="total right">Total pagado</td>
+            <td class="total right">Q {{ total_aplicado|floatformat:2 }}</td>
+          </tr>
+        </tbody>
+      </table>
+    {% else %}
+      <p style="margin-top:14px;">Monto pagado: <strong>Q {{ pago.monto|floatformat:2 }}</strong></p>
+    {% endif %}
+
+    <p class="muted" style="margin-top:18px;">
+      Gracias por tu pago. Puedes consultar este recibo cuando quieras desde tu historial.
+    </p>
+  </div>
+</body>
+</html>
+{% endblock %}

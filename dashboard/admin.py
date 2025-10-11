@@ -1,4 +1,10 @@
-from django.contrib import admin
+# admin
+from django.contrib import admin, messages
+from django.contrib.admin.views.decorators import staff_member_required
+from dashboard.models import Pago
+from django.http import HttpResponse
+import csv
+from dashboard.utils.email_utils import send_receipt_email
 from dashboard.models import CuentaServicio, Tarifa, Periodo, Boleta, Pago, AplicacionPago, TransaccionOnline
 from django.contrib.auth.admin import UserAdmin
 from .models import (
@@ -122,9 +128,19 @@ class BoletaAdmin(admin.ModelAdmin):
 
 @admin.register(Pago)
 class PagoAdmin(admin.ModelAdmin):
-    list_display = ("id", "cuenta", "fecha", "metodo", "monto", "referencia")
-    list_filter = ("metodo", "fecha")
-    search_fields = ("cuenta__titular", "referencia")
+    list_display = ("id", "cuenta", "monto", "metodo", "referencia", "fecha")
+    actions = ["reenviar_recibo"]
+
+    @admin.action(description="Reenviar recibo al contribuyente")
+    def reenviar_recibo(self, request, queryset):
+        ok = 0
+        for pago in queryset:
+            try:
+                if send_receipt_email(pago):
+                    ok += 1
+            except Exception:
+                pass
+        messages.success(request, f"Recibo reenviado en {ok} pago(s).")
 
 @admin.register(AplicacionPago)
 class AplicacionPagoAdmin(admin.ModelAdmin):
@@ -136,3 +152,25 @@ class TransaccionOnlineAdmin(admin.ModelAdmin):
     list_filter = ("estado",)
     search_fields = ("orden_id",)
 
+
+@staff_member_required
+def export_pagos_admin_csv(request):
+    qs = (Pago.objects
+          .select_related("cuenta", "cuenta__usuario")
+          .order_by("-id"))
+
+    # filtros admin (usuario, cuenta, estado, fechas… según tu modelo)
+    # eje: ?usuario=mail&cuenta_id=1&fecha_ini=...&fecha_fin=...
+    # Aplica similar a mis_pagos_csv
+
+    resp = HttpResponse(content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = 'attachment; filename="pagos_admin.csv"'
+    w = csv.writer(resp)
+    w.writerow(["ID","Fecha","Cuenta","Titular","Usuario","Método","Referencia","Monto (Q)"])
+    for p in qs:
+        cuenta = getattr(p, "cuenta", None)
+        titular = getattr(cuenta, "titular", "") if cuenta else ""
+        usuario = getattr(getattr(cuenta, "usuario", None), "email", "")
+        fecha_val = getattr(p, "fecha", None) or getattr(p, "creado_en", "")
+        w.writerow([p.id, fecha_val, cuenta, titular, usuario, p.metodo, p.referencia, p.monto])
+    return resp

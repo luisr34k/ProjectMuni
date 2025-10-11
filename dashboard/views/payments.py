@@ -7,6 +7,12 @@ import logging
 from datetime import date
 from decimal import Decimal
 from decimal import ROUND_HALF_UP
+import csv
+from django.core.paginator import Paginator
+from django.utils.dateparse import parse_date
+from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 
 # 2. Librerías de terceros (Django y otras)
 from django.conf import settings
@@ -22,6 +28,8 @@ from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from svix.webhooks import Webhook
+from django.template.loader import render_to_string
+from django.contrib.admin.views.decorators import staff_member_required
 
 # 3. Módulos de la aplicación
 from dashboard.forms import VincularCuentaForm
@@ -30,6 +38,12 @@ from dashboard.utils import recurrente as rec
 from dashboard.utils.billing import ensure_boletas_pendientes
 from dashboard.utils.email_utils import send_receipt_email
 from dashboard.utils.email_utils import _user_email
+
+try:
+    # ya lo tienes en admin: /admin/dashboard/aplicacionpago/
+    from dashboard.models import AplicacionPago
+except Exception:
+    AplicacionPago = None
 
 log = logging.getLogger(__name__)
 FEE_RATE  = Decimal("0.045")   # 4.5 %
@@ -310,3 +324,223 @@ def recurrente_webhook(request):
             log.info("[REC-HOOK] evento ignorado=%s external_id=%s", event_type, external_id)
 
     return HttpResponse(status=200)
+
+
+def _get_tx_success(pago):
+    """
+    Última transacción SUCCESS del pago para extraer datos de tarjeta (si los hay).
+    """
+    tx = (TransaccionOnline.objects
+          .filter(pago=pago, estado="success")
+          .order_by("-actualizado_en", "-creado_en")
+          .first())
+    return tx
+
+def _extract_card_info(tx):
+    """
+    Extrae red/ultimos 4/expiración desde tx.payload.checkout.payment_method.card
+    Maneja ausencia de campos sin romper.
+    """
+    if not tx or not tx.payload:
+        return {}
+    pm = (tx.payload.get("checkout") or {}).get("payment_method") or {}
+    card = pm.get("card") or {}
+    return {
+        "network": card.get("network") or "",
+        "last4": str(card.get("last4") or ""),
+        "issuer_name": card.get("issuer_name") or "",
+        "exp_month": card.get("expiration_month") or "",
+        "exp_year": card.get("expiration_year") or "",
+    }
+
+@login_required(login_url="login")
+def recibo_pago_view(request, pago_id):
+    """
+    Vista HTML imprimible del recibo.
+    - El ciudadano sólo puede ver sus propios pagos.
+    - El staff puede ver cualquiera.
+    """
+    qs = Pago.objects.select_related("cuenta", "cuenta__usuario")
+    pago = get_object_or_404(qs, pk=pago_id)
+
+    # permiso básico
+    if not request.user.is_staff:
+        if not getattr(pago.cuenta, "usuario_id", None) or pago.cuenta.usuario_id != request.user.id:
+            return HttpResponseBadRequest("No tienes permiso para ver este recibo.")
+
+    # boletas aplicadas
+    aplicaciones = []
+    if AplicacionPago:
+        aplicaciones = (AplicacionPago.objects
+                        .filter(pago=pago)
+                        .select_related("boleta", "boleta__periodo")
+                        .order_by("boleta__periodo__anio", "boleta__periodo__mes"))
+
+    # tarjeta (si fue con tarjeta)
+    tx = _get_tx_success(pago)
+    card = _extract_card_info(tx)
+
+    total_aplicado = sum((a.monto_aplicado for a in aplicaciones), Decimal("0.00"))
+    ctx = {
+        "pago": pago,
+        "cuenta": pago.cuenta,
+        "aplicaciones": aplicaciones,
+        "total_aplicado": total_aplicado,
+        "municipalidad": "Municipalidad de San Luis",
+        "referencia": pago.referencia or f"pa_{pago.pk}",
+        "card": card,  # ✅ corrección
+    }
+    return render(request, "pagos/recibo.html", ctx)
+
+
+# ---------- PDF opcional con WeasyPrint ----------
+# pip install weasyprint==61.0  (o versión estable que uses)
+# En Render no necesitas librerías del sistema si usas las imágenes/estilos hosteados (CDN) o inline.
+
+@login_required(login_url="login")
+def recibo_pago_pdf(request, pago_id):
+    qs = Pago.objects.select_related("cuenta", "cuenta__usuario")
+    pago = get_object_or_404(qs, pk=pago_id)
+
+    if not request.user.is_staff:
+        if not getattr(pago.cuenta, "usuario_id", None) or pago.cuenta.usuario_id != request.user.id:
+            return HttpResponseBadRequest("No tienes permiso para ver este recibo.")
+
+    aplicaciones = (AplicacionPago.objects
+                    .filter(pago=pago)
+                    .select_related("boleta", "boleta__periodo")
+                    .order_by("boleta__periodo__anio", "boleta__periodo__mes"))
+
+    # suma segura en Decimal (cubre lista vacía)
+    total_aplicado = sum((a.monto_aplicado for a in aplicaciones), Decimal("0.00"))
+
+    tx = _get_tx_success(pago)
+    card = _extract_card_info(tx)
+
+    ctx = {
+        "pago": pago,
+        "cuenta": pago.cuenta,
+        "aplicaciones": aplicaciones,
+        "total_aplicado": total_aplicado,   # 👈 aquí la clave
+        "card": card,
+        "municipalidad": "Municipalidad de San Luis",
+        "referencia": getattr(pago, "referencia", f"pa_{pago.pk}"),
+        "is_pdf": True,
+    }
+
+    html = render_to_string("pagos/recibo.html", ctx, request=request)
+    from weasyprint import HTML
+    pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
+    resp = HttpResponse(pdf, content_type="application/pdf")
+    resp["Content-Disposition"] = f'inline; filename="recibo-{pago.pk}.pdf"'
+    return resp
+
+@login_required(login_url="login")
+def mis_pagos(request):
+    """
+    Listado de pagos del ciudadano con filtros (rango de fechas, método, referencia)
+    y paginación. Muestra links a recibo HTML y PDF.
+    """
+    usuario = request.user
+    qs = (Pago.objects
+          .select_related("cuenta")
+          .filter(cuenta__usuario=usuario)
+          .order_by("-id"))
+
+    # --- filtros GET opcionales ---
+    f_ini = request.GET.get("f_ini")  # yyyy-mm-dd
+    f_fin = request.GET.get("f_fin")
+    metodo = request.GET.get("metodo")  # 'online', 'caja', etc.
+    ref = request.GET.get("ref")
+
+    # fecha segura: usa 'fecha' si existe, si no 'creado_en'
+    fecha_field = "fecha"
+    if not hasattr(Pago, fecha_field):
+        fecha_field = "creado_en"
+
+    if f_ini:
+        d = parse_date(f_ini)
+        if d:
+            qs = qs.filter(**{f"{fecha_field}__date__gte": d})
+    if f_fin:
+        d = parse_date(f_fin)
+        if d:
+            qs = qs.filter(**{f"{fecha_field}__date__lte": d})
+
+    if metodo:
+        qs = qs.filter(metodo__iexact=metodo)
+
+    if ref:
+        qs = qs.filter(referencia__icontains=ref)
+
+    # paginación
+    paginator = Paginator(qs, 15)
+    page = request.GET.get("page")
+    pagos = paginator.get_page(page)
+
+    # para el selector de métodos mostramos los distintos existentes del usuario
+    metodos = (Pago.objects
+               .filter(cuenta__usuario=usuario)
+               .order_by()
+               .values_list("metodo", flat=True)
+               .distinct())
+
+    ctx = {
+        "pagos": pagos,
+        "metodos": [m for m in metodos if m],  # limpia None
+        "f_ini": f_ini or "",
+        "f_fin": f_fin or "",
+        "metodo_sel": metodo or "",
+        "ref": ref or "",
+        "fecha_field": fecha_field,
+    }
+    return render(request, "pagos/mis_pagos.html", ctx)
+
+
+@login_required(login_url="login")
+def mis_pagos_csv(request):
+    """
+    Exporta a CSV los pagos del ciudadano aplicando los mismos filtros que la vista.
+    """
+    usuario = request.user
+    qs = (Pago.objects
+          .select_related("cuenta")
+          .filter(cuenta__usuario=usuario)
+          .order_by("-id"))
+
+    f_ini = request.GET.get("f_ini")
+    f_fin = request.GET.get("f_fin")
+    metodo = request.GET.get("metodo")
+    ref = request.GET.get("ref")
+
+    fecha_field = "fecha"
+    if not hasattr(Pago, fecha_field):
+        fecha_field = "creado_en"
+
+    if f_ini:
+        d = parse_date(f_ini)
+        if d:
+            qs = qs.filter(**{f"{fecha_field}__date__gte": d})
+    if f_fin:
+        d = parse_date(f_fin)
+        if d:
+            qs = qs.filter(**{f"{fecha_field}__date__lte": d})
+    if metodo:
+        qs = qs.filter(metodo__iexact=metodo)
+    if ref:
+        qs = qs.filter(referencia__icontains=ref)
+
+    # Construir CSV
+    resp = HttpResponse(content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = 'attachment; filename="mis_pagos.csv"'
+    w = csv.writer(resp)
+    w.writerow(["ID", "Fecha", "Cuenta", "Titular", "Método", "Referencia", "Monto (Q)"])
+
+    for p in qs:
+        fecha_val = getattr(p, fecha_field, None)
+        cuenta = getattr(p, "cuenta", None)
+        titular = getattr(cuenta, "titular", "") if cuenta else ""
+        monto = getattr(p, "monto", "")
+        w.writerow([p.id, fecha_val, cuenta, titular, p.metodo, p.referencia, monto])
+
+    return resp

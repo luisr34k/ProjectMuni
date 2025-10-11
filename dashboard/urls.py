@@ -53,6 +53,10 @@ urlpatterns = [
     path('pagos/recurrente/webhook/', pay_views.recurrente_webhook, name='rec_webhook'),
     path('pagos/recurrente/success/', pay_views.recurrente_success, name='rec_success'),
     path('pagos/recurrente/cancel/', pay_views.recurrente_cancel, name='rec_cancel'),
+    path("pagos/<int:pago_id>/recibo/", pay_views.recibo_pago_view, name="recibo_pago"),
+    path("pagos/<int:pago_id>/recibo.pdf", pay_views.recibo_pago_pdf, name="recibo_pago_pdf"),
+    path("mis-pagos/", pay_views.mis_pagos, name="mis_pagos"),
+    path("mis-pagos/export.csv", pay_views.mis_pagos_csv, name="mis_pagos_csv"),
     
     
     # dashboard/urls.py

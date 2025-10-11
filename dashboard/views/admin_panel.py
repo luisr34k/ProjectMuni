@@ -16,6 +16,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from dashboard.forms import AdminPermisoEstadoForm
 from dashboard.utils.audit import log_permiso
 from django.utils import timezone
+from dashboard.utils.email_utils import send_receipt_email
 
 ESTADOS = ["enviada", "en revisión", "en proceso", "resuelta", "rechazada"]
 

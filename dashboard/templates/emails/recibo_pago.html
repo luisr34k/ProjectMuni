@@ -26,6 +26,13 @@
       Gracias por tu pago. Puedes consultar tu historial en el portal.
     </p>
 
+    <p>
+      Puedes ver y descargar tu recibo aquí:
+      <a href="{{ request_scheme }}://{{ request_host }}{% url 'recibo_pago' pago.id %}">
+        Recibo #{{ pago.id }}
+      </a>
+    </p>
+
     <p style="font-size:12px;color:#888;">
       Enviado desde {{ from_email }}
     </p>
