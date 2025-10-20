@@ -80,7 +80,7 @@
           <tr>
             <td>{{ p.id }}</td>
             <td>{{ p.fecha_val|date:"Y-m-d H:i" }}</td>
-            <td>{{ p.cuenta.usuario.email }}</td>
+            <td>{{ p.cuenta.usuario.nombre }}</td>
             <td>{{ p.cuenta.codigo_catastral|default:p.cuenta.id }}</td>
             <td>{{ p.metodo }}</td>
             <td>{{ p.referencia }}</td>

@@ -21,7 +21,6 @@
         <div class="card-body">
           <dl class="row mb-0">
             <dt class="col-sm-4">Fecha</dt><dd class="col-sm-8">{{ pago.creado_en|default:pago.fecha }}</dd>
-            <dt class="col-sm-4">Usuario</dt><dd class="col-sm-8">{{ pago.cuenta.usuario.email }}</dd>
             <dt class="col-sm-4">Titular</dt><dd class="col-sm-8">{{ pago.cuenta.titular }}</dd>
             <dt class="col-sm-4">Cuenta</dt><dd class="col-sm-8">{{ pago.cuenta.codigo_catastral|default:pago.cuenta.id }}</dd>
             <dt class="col-sm-4">Método</dt><dd class="col-sm-8">{{ pago.metodo }}</dd>
