@@ -96,8 +96,12 @@ def crear_pago_online(request, cuenta_id):
     return HttpResponseRedirect(chk["checkout_url"])
 
 def recurrente_success(request):
-    # Pantalla simple de "gracias" (el cierre real lo hace el webhook)
-    return HttpResponse("Gracias. Si el pago fue exitoso, se verá reflejado en unos momentos.")
+    # El cierre real lo hace el webhook; aquí solo guiamos al usuario.
+    messages.info(
+        request,
+        "Estamos procesando tu pago. En unos segundos/minutos verás el resultado en 'Mis pagos'."
+    )
+    return redirect("mis_pagos")
 
 def recurrente_cancel(request):
     return HttpResponse("Has cancelado el pago. No se realizó ningún cargo.")
@@ -207,10 +211,7 @@ def recurrente_dev_simular_success_get(request):
 def recurrente_webhook(request):
     """
     Webhook Recurrente (Svix) con verificación de firma + idempotencia.
-    Soporta payloads:
-      • {type, data}            (v1)
-      • {event_type, ... plano} (v2)
-    Eventos manejados:
+    Maneja eventos:
       • payment_intent.succeeded / failed
       • bank_transfer_intent.succeeded / failed
     """
@@ -224,30 +225,27 @@ def recurrente_webhook(request):
 
     # 1) Verificar firma Svix
     try:
-        payload_raw = request.body  # bytes
+        payload_raw = request.body
         headers = {k: v for k, v in request.headers.items()}
-        verified = Webhook(secret).verify(payload_raw, headers)  # dict
+        verified = Webhook(secret).verify(payload_raw, headers)
     except Exception as e:
         log.exception("[REC-HOOK] Invalid signature: %s", e)
         return HttpResponseBadRequest(f"Invalid signature: {e}")
 
-    # 2) Normalizar estructura
+    # 2) Normalizar
     event_type = verified.get("type") or verified.get("event_type")
-    data_obj   = verified.get("data") or verified  # si no hay data, usar raíz
-
-    # 2.1) ID externo robusto para idempotencia
+    data_obj   = verified.get("data") or verified
     external_id = (
-        data_obj.get("id")  # p.ej. pa_xxx
+        data_obj.get("id")
         or (data_obj.get("payment") or {}).get("id")
         or ((data_obj.get("checkout") or {}).get("latest_intent") or {}).get("id")
         or ((data_obj.get("checkout") or {}).get("id"))
-        or verified.get("id")  # fallback
+        or verified.get("id")
     )
     if not external_id:
         log.warning("[REC-HOOK] missing external id. event_type=%s", event_type)
         return JsonResponse({"error": "missing external id"}, status=400)
 
-    # 2.2) Metadata (puede venir en checkout.metadata)
     meta = (
         data_obj.get("metadata")
         or verified.get("metadata")
@@ -258,43 +256,41 @@ def recurrente_webhook(request):
 
     log.info("[REC-HOOK] event_type=%s external_id=%s pago_id=%s", event_type, external_id, pago_id)
 
+    # Caso: evento sin pago_id (p. ej. test o replay antiguo)
     if not pago_id:
-        # Registramos la transacción para trazabilidad, pero la dejamos en failed
         with transaction.atomic():
             tx, _ = TransaccionOnline.objects.select_for_update().get_or_create(
                 orden_id=external_id,
                 defaults={"estado": "pending", "payload": verified}
             )
-            tx.estado = "failed"
+            tx.estado = "ignored"
             tx.payload = verified
             tx.save(update_fields=["estado", "payload", "actualizado_en"])
-        return JsonResponse({"error": "missing pago_id in metadata"}, status=400)
+        return JsonResponse({"status": "ignored", "reason": "missing pago_id"}, status=200)
 
-    # 3) Idempotencia y actualización de dominio
+    # 3) Procesamiento idempotente
     with transaction.atomic():
         tx, _ = TransaccionOnline.objects.select_for_update().get_or_create(
             orden_id=external_id,
             defaults={"estado": "pending", "payload": verified}
         )
+
+        # Si ya fue procesado, ignorar
         if tx.estado in ("success", "failed"):
-            # Ya procesado previamente ─ devolvemos 200 para que Svix no reintente
             log.info("[REC-HOOK] already processed external_id=%s estado=%s", external_id, tx.estado)
-            return HttpResponse(status=200)
+            return JsonResponse({"status": "ignored", "estado": tx.estado}, status=200)
 
         pago = Pago.objects.select_for_update().get(pk=pago_id)
 
-        # Grupos de eventos
         card_succeeded = {"payment_intent.succeeded", "payment.succeeded"}
         card_failed    = {"payment_intent.failed", "payment.failed"}
         bank_succeeded = {"bank_transfer_intent.succeeded"}
         bank_failed    = {"bank_transfer_intent.failed"}
 
         if event_type in card_succeeded or event_type in bank_succeeded:
-            # Éxito de cobro → set referencia, distribuir y marcar success
             if not pago.referencia:
                 pago.referencia = external_id
                 pago.save(update_fields=["referencia"])
-
             pago.distribuir_en_boletas()
 
             tx.estado = "success"
@@ -302,28 +298,35 @@ def recurrente_webhook(request):
             tx.payload = verified
             tx.save(update_fields=["estado", "pago", "payload", "actualizado_en"])
 
-            # Enviar recibo (idempotente: solo aquí cuando cambiamos a success)
-            try:
-                ok = send_receipt_email(pago)
-                log.info("[REC-HOOK] recibo enviado=%s pago_id=%s dest=%s",
-                        ok, pago.pk,
-                        getattr(getattr(pago.cuenta, "usuario", None), "email", ""))
-            except Exception as e:
-                log.exception("[REC-HOOK] error enviando recibo pago_id=%s: %s", pago.pk, e)
+            # 🧩 Enviar recibo solo tras commit (seguro)
+            def _send_receipt():
+                try:
+                    ok = send_receipt_email(pago)
+                    log.info("[REC-HOOK] recibo enviado=%s pago_id=%s dest=%s",
+                             ok, pago.pk,
+                             getattr(getattr(pago.cuenta, "usuario", None), "email", ""))
+                except Exception as e:
+                    log.exception("[REC-HOOK] error enviando recibo pago_id=%s: %s", pago.pk, e)
+
+            transaction.on_commit(_send_receipt)
 
         elif event_type in card_failed or event_type in bank_failed:
+            reason = (
+                data_obj.get("failure_reason")
+                or (data_obj.get("checkout") or {}).get("failure_reason")
+            )
             tx.estado = "failed"
             tx.payload = verified
             tx.save(update_fields=["estado", "payload", "actualizado_en"])
-            log.info("[REC-HOOK] marcado failed external_id=%s pago_id=%s", external_id, pago_id)
+            log.info("[REC-HOOK] marcado failed external_id=%s pago_id=%s reason=%s",
+                     external_id, pago_id, reason)
 
         else:
-            # Otros eventos: conservar payload, responder 200 para no reintentar
             tx.payload = verified
             tx.save(update_fields=["payload", "actualizado_en"])
             log.info("[REC-HOOK] evento ignorado=%s external_id=%s", event_type, external_id)
 
-    return HttpResponse(status=200)
+    return JsonResponse({"status": "ok", "event_type": event_type}, status=200)
 
 
 def _get_tx_success(pago):
@@ -544,3 +547,200 @@ def mis_pagos_csv(request):
         w.writerow([p.id, fecha_val, cuenta, titular, p.metodo, p.referencia, monto])
 
     return resp
+
+
+@staff_member_required
+def admin_pagos(request):
+    """
+    Listado de pagos con filtros: fecha (desde/hasta), método, estado (success/failed/pending),
+    referencia/orden, usuario, cuenta.
+    """
+    qs = (Pago.objects
+          .select_related("cuenta", "cuenta__usuario")
+          .order_by("-id"))
+
+    # --- filtros GET ---
+    f_ini = request.GET.get("f_ini")
+    f_fin = request.GET.get("f_fin")
+    metodo = request.GET.get("metodo")
+    estado = request.GET.get("estado")  # estado de TransaccionOnline: success/failed/pending
+    ref_q = request.GET.get("ref")      # referencia/orden
+    usuario_q = request.GET.get("usuario")  # email o id
+    cuenta_q = request.GET.get("cuenta")    # código catastral o id
+
+    # Campo fecha flexible
+    fecha_field = "fecha" if hasattr(Pago, "fecha") else "creado_en"
+    if f_ini:
+        d = parse_date(f_ini)
+        if d: qs = qs.filter(**{f"{fecha_field}__date__gte": d})
+    if f_fin:
+        d = parse_date(f_fin)
+        if d: qs = qs.filter(**{f"{fecha_field}__date__lte": d})
+
+    if metodo:
+        qs = qs.filter(metodo__iexact=metodo)
+
+    # Filtro por usuario (email o id)
+    if usuario_q:
+        qs = qs.filter(
+            Q(cuenta__usuario__email__icontains=usuario_q) |
+            Q(cuenta__usuario__id__iexact=usuario_q)
+        )
+
+    # Filtro por cuenta (código catastral o id)
+    if cuenta_q:
+        qs = qs.filter(
+            Q(cuenta__codigo_catastral__icontains=cuenta_q) |
+            Q(cuenta__id__iexact=cuenta_q)
+        )
+
+    # Filtro por referencia/orden (en Pago.referencia o en TransaccionOnline.orden_id)
+    if ref_q:
+        ids_por_tx = list(
+            TransaccionOnline.objects
+            .filter(orden_id__icontains=ref_q)
+            .values_list("pago_id", flat=True)
+        )
+        qs = qs.filter(Q(referencia__icontains=ref_q) | Q(id__in=ids_por_tx))
+
+    # Filtro por estado (via última transacción asociada)
+    if estado in {"success", "failed", "pending"}:
+        ids_estado = (TransaccionOnline.objects
+                      .filter(estado=estado)
+                      .values_list("pago_id", flat=True)
+                      .distinct())
+        qs = qs.filter(id__in=ids_estado)
+
+    paginator = Paginator(qs, 25)
+    page = request.GET.get("page")
+    pagos = paginator.get_page(page)
+    
+    for p in pagos:
+        setattr(p, "fecha_val", getattr(p, fecha_field, None))
+
+    # Para el select de métodos
+    metodos = (Pago.objects.order_by().values_list("metodo", flat=True).distinct())
+
+    ctx = {
+        "pagos": pagos,
+        "metodos": [m for m in metodos if m],
+        "f_ini": f_ini or "",
+        "f_fin": f_fin or "",
+        "metodo_sel": metodo or "",
+        "estado_sel": estado or "",
+        "ref": ref_q or "",
+        "usuario_q": usuario_q or "",
+        "cuenta_q": cuenta_q or "",
+        "fecha_field": fecha_field,
+    }
+    return render(request, "admin_panel/list.html", ctx)
+
+@staff_member_required
+def admin_pago_detalle(request, pk: int):
+    pago = get_object_or_404(Pago.objects.select_related("cuenta", "cuenta__usuario"), pk=pk)
+
+    aplicaciones = []
+    try:
+        from dashboard.models import AplicacionPago
+        aplicaciones = (AplicacionPago.objects
+                        .filter(pago=pago)
+                        .select_related("boleta", "boleta__periodo")
+                        .order_by("boleta__periodo__anio", "boleta__periodo__mes"))
+    except Exception:
+        pass
+
+    trans = (TransaccionOnline.objects
+             .filter(pago=pago)
+             .order_by("-actualizado_en", "-creado_en"))
+
+    ctx = {
+        "pago": pago,
+        "aplicaciones": aplicaciones,
+        "trans": trans,
+    }
+    return render(request, "admin_panel/detail.html", ctx)
+
+@staff_member_required
+def admin_pagos_export_csv(request):
+    # Reaplicamos los mismos filtros que en admin_pagos
+    qs = (Pago.objects
+          .select_related("cuenta", "cuenta__usuario")
+          .order_by("-id"))
+
+    f_ini = request.GET.get("f_ini")
+    f_fin = request.GET.get("f_fin")
+    metodo = request.GET.get("metodo")
+    estado = request.GET.get("estado")
+    ref_q = request.GET.get("ref")
+    usuario_q = request.GET.get("usuario")
+    cuenta_q = request.GET.get("cuenta")
+
+    fecha_field = "fecha" if hasattr(Pago, "fecha") else "creado_en"
+    if f_ini:
+        d = parse_date(f_ini)
+        if d: qs = qs.filter(**{f"{fecha_field}__date__gte": d})
+    if f_fin:
+        d = parse_date(f_fin)
+        if d: qs = qs.filter(**{f"{fecha_field}__date__lte": d})
+    if metodo:
+        qs = qs.filter(metodo__iexact=metodo)
+    if usuario_q:
+        qs = qs.filter(
+            Q(cuenta__usuario__email__icontains=usuario_q) |
+            Q(cuenta__usuario__id__iexact=usuario_q)
+        )
+    if cuenta_q:
+        qs = qs.filter(
+            Q(cuenta__codigo_catastral__icontains=cuenta_q) |
+            Q(cuenta__id__iexact=cuenta_q)
+        )
+    if ref_q:
+        ids_por_tx = list(
+            TransaccionOnline.objects
+            .filter(orden_id__icontains=ref_q)
+            .values_list("pago_id", flat=True)
+        )
+        qs = qs.filter(Q(referencia__icontains=ref_q) | Q(id__in=ids_por_tx))
+    if estado in {"success", "failed", "pending"}:
+        ids_estado = (TransaccionOnline.objects
+                      .filter(estado=estado)
+                      .values_list("pago_id", flat=True)
+                      .distinct())
+        qs = qs.filter(id__in=ids_estado)
+
+    import csv
+    resp = HttpResponse(content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = 'attachment; filename="pagos_admin.csv"'
+    w = csv.writer(resp)
+    w.writerow(["ID","Fecha","Usuario","Titular","Cuenta","Método","Referencia","Monto (Q)","Último estado","Orden Tx"])
+
+    # Para cada pago, buscamos su última transacción (si hay)
+    for p in qs:
+        last_tx = (TransaccionOnline.objects
+                   .filter(pago=p)
+                   .order_by("-actualizado_en", "-creado_en")
+                   .first())
+        usuario = getattr(getattr(p.cuenta, "usuario", None), "email", "")
+        titular = getattr(p.cuenta, "titular", "")
+        cuenta = getattr(p.cuenta, "codigo_catastral", "") or getattr(p.cuenta, "id", "")
+        fecha_val = getattr(p, fecha_field, "")
+        w.writerow([
+            p.id, fecha_val, usuario, titular, cuenta, p.metodo or "", p.referencia or "",
+            f"{p.monto or Decimal('0.00')}", getattr(last_tx, "estado", ""), getattr(last_tx, "orden_id", "")
+        ])
+
+    return resp
+
+@staff_member_required
+def admin_pago_reenviar_recibo(request, pk: int):
+    pago = get_object_or_404(Pago, pk=pk)
+    try:
+        ok = send_receipt_email(pago)
+        if ok:
+            messages.success(request, "Recibo reenviado correctamente.")
+        else:
+            messages.warning(request, "No se pudo reenviar el recibo (revisa logs).")
+    except Exception as e:
+        messages.error(request, f"Error reenviando recibo: {e}")
+    return redirect("admin_pago_detalle", pk=pk)
+

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static %}
+
+
+{% block title %}Admin · Pagos{% endblock %}
+
+{% block content %}
+<div class="container-xxl container-p-y">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0">Pagos</h4>
+    <a class="btn btn-outline-primary"
+    href="{% url 'admin_pagos_export_csv' %}?{{ request.GET.urlencode }}">
+    Exportar CSV
+    </a>
+  </div>
+
+  <form class="card p-3 mb-3" method="get">
+    <div class="row g-2">
+      <div class="col-6 col-md-2">
+        <label class="form-label">Desde</label>
+        <input type="date" class="form-control" name="f_ini" value="{{ f_ini }}">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Hasta</label>
+        <input type="date" class="form-control" name="f_fin" value="{{ f_fin }}">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Método</label>
+        <select class="form-select" name="metodo">
+          <option value="">Todos</option>
+          {% for m in metodos %}
+            <option value="{{ m }}" {% if m == metodo_sel %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Estado</label>
+        <select class="form-select" name="estado">
+          <option value="">Todos</option>
+          <option value="success" {% if estado_sel == 'success' %}selected{% endif %}>success</option>
+          <option value="failed"  {% if estado_sel == 'failed' %}selected{% endif %}>failed</option>
+          <option value="pending" {% if estado_sel == 'pending' %}selected{% endif %}>pending</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Ref / Orden</label>
+        <input type="text" class="form-control" name="ref" value="{{ ref }}" placeholder="pa_xxx / ch_xxx">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Usuario</label>
+        <input type="text" class="form-control" name="usuario" value="{{ usuario_q }}" placeholder="email o id">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Cuenta</label>
+        <input type="text" class="form-control" name="cuenta" value="{{ cuenta_q }}" placeholder="cat. o id">
+      </div>
+      <div class="col-12 col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary w-100" type="submit">Filtrar</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>{{ fecha_field|title }}</th>
+            <th>Usuario</th>
+            <th>Cuenta</th>
+            <th>Método</th>
+            <th>Referencia</th>
+            <th>Monto (Q)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pagos %}
+          <tr>
+            <td>{{ p.id }}</td>
+            <td>{{ p.fecha_val|date:"Y-m-d H:i" }}</td>
+            <td>{{ p.cuenta.usuario.email }}</td>
+            <td>{{ p.cuenta.codigo_catastral|default:p.cuenta.id }}</td>
+            <td>{{ p.metodo }}</td>
+            <td>{{ p.referencia }}</td>
+            <td>{{ p.monto }}</td>
+            <td><a class="btn btn-sm btn-outline-secondary" href="{% url 'admin_pago_detalle' p.id %}">Ver</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="text-center text-muted py-4">Sin resultados</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center">
+      <div class="text-muted">Total: {{ pagos.paginator.count }}</div>
+      <nav>
+        <ul class="pagination mb-0">
+          {% if pagos.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ pagos.previous_page_number }}&{{ request.GET.urlencode }}">«</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">«</span></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">{{ pagos.number }} / {{ pagos.paginator.num_pages }}</span></li>
+          {% if pagos.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ pagos.next_page_number }}&{{ request.GET.urlencode }}">»</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">»</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+{% endblock %}

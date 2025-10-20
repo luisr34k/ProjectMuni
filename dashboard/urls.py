@@ -57,7 +57,10 @@ urlpatterns = [
     path("pagos/<int:pago_id>/recibo.pdf", pay_views.recibo_pago_pdf, name="recibo_pago_pdf"),
     path("mis-pagos/", pay_views.mis_pagos, name="mis_pagos"),
     path("mis-pagos/export.csv", pay_views.mis_pagos_csv, name="mis_pagos_csv"),
-    
+    path("admin-panel/pagos/", pay_views.admin_pagos, name="admin_pagos"),
+    path("admin-panel/pagos/export.csv", pay_views.admin_pagos_export_csv, name="admin_pagos_export_csv"),
+    path("admin-panel/pagos/<int:pk>/", pay_views.admin_pago_detalle, name="admin_pago_detalle"),
+    path("admin-panel/pagos/<int:pk>/reenviar-recibo/", pay_views.admin_pago_reenviar_recibo, name="admin_pago_reenviar_recibo"),
     
     # dashboard/urls.py
     path('pagos/recurrente/dev-simular-success/',     pay_views.recurrente_dev_simular_success,     name='rec_dev_simular_success'),
