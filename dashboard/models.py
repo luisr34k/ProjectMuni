@@ -395,7 +395,7 @@ class AplicacionPago(models.Model):
 class TransaccionOnline(models.Model):
     pago = models.OneToOneField(Pago, on_delete=models.CASCADE, related_name='transaccion', null=True, blank=True)
     gateway = models.CharField(max_length=50, default='Recurrente')
-    orden_id = models.CharField(max_length=100)      # ID que devuelve Recurrente (payment_intent id)
+    orden_id = models.CharField(max_length=100, unique=True)      # ID que devuelve Recurrente (payment_intent id)
     estado = models.CharField(max_length=30)         # pending, success, failed
     payload = models.JSONField(default=dict, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
