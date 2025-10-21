@@ -1,42 +1,202 @@
 {% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
 {% block admin_title %}Panel{% endblock %}
 
 {% block content %}
-<div class="row g-4">
-  <div class="col-12 col-md-4">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="card-title mb-1">Denuncias</h5>
-        <div class="display-6">{{ tot_denuncias }}</div>
-        <small class="text-muted">Total registradas</small>
-      </div>  
+
+
+  <!-- KPIs -->
+  <div class="row g-4">
+    <div class="col-12 col-md-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Denuncias</div>
+          <div class="display-6 fw-semibold">{{ tot_denuncias }}</div>
+          <div class="text-muted">Total registradas</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Permisos</div>
+          <div class="display-6 fw-semibold">{{ tot_permisos }}</div>
+          <div class="text-muted">Total registrados</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Ingresos (éxitos)</div>
+          <div class="display-6 fw-semibold">Q {{ total_ingresos }}</div>
+          <div class="text-muted">Suma de pagos exitosos</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Boletas pendientes</div>
+          <div class="display-6 fw-semibold">{{ boletas_pendientes }}</div>
+          <div class="text-muted">Saldo: Q {{ boletas_pend_total }}</div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="col-12 col-md-8">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Últimas denuncias</h5>
-        <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_denuncias' %}">Ver todas</a>
+  <!-- Gráficas -->
+  <div class="row g-4 mt-1">
+    <div class="col-12 col-lg-8">
+      <div class="card h-100">
+        <div class="card-header"><strong>Ingresos por mes (últimos 6)</strong></div>
+        <div class="card-body">
+          <canvas id="chartIngresos" height="120"></canvas>
+        </div>
       </div>
-      <div class="table-responsive">
-        <table class="table mb-0">
-          <thead><tr><th>#</th><th>Categoría</th><th>Estado</th><th>Creada</th></tr></thead>
-          <tbody>
-            {% for d in ultimas_denuncias %}
-              <tr>
-                <td><a href="{% url 'admin_denuncia_detalle' d.id %}">#{{ d.id }}</a></td>
-                <td>{{ d.categoria.nombre }}</td>
-                <td>{{ d.estado }}</td>
-                <td>{{ d.creada_en|date:"d/m/Y H:i" }}</td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="4" class="text-center text-muted py-4">Sin registros</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="card h-100">
+        <div class="card-header"><strong>Pagos por estado</strong></div>
+        <div class="card-body">
+          <canvas id="chartEstados" height="120"></canvas>
+        </div>
       </div>
     </div>
   </div>
-</div>
+
+  <!-- Listas rápidas -->
+  <div class="row g-4 mt-1">
+    <div class="col-12 col-xl-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Últimas denuncias</h5>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_denuncias' %}">Ver todas</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead><tr><th>#</th><th>Categoría</th><th>Estado</th><th>Creada</th></tr></thead>
+            <tbody>
+              {% for d in ultimas_denuncias %}
+                <tr>
+                  <td><a href="{% url 'admin_denuncia_detalle' d.id %}">#{{ d.id }}</a></td>
+                  <td>{{ d.categoria.nombre }}</td>
+                  <td>{{ d.estado }}</td>
+                  <td>{{ d.creada_en|date:"d/m/Y H:i" }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-4">Sin registros</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Últimos pagos</h5>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_pagos' %}">Ver todos</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead><tr><th>#</th><th>Cuenta</th><th>Monto</th><th>Estado</th></tr></thead>
+            <tbody>
+              {% for p in ultimos_pagos %}
+                <tr>
+                  <td>#{{ p.id }}</td>
+                  <td>{{ p.cuenta.codigo_catastral|default:p.cuenta.id }}</td>
+                  <td>Q {{ p.monto }}</td>
+                  <td>
+                    {# Estado rápido: si hay referencia asumimos éxito; para precisión, usa la lista de pagos (ya anota estado_tx) #}
+                    {% if p.referencia %}<span class="badge bg-success">success</span>
+                    {% else %}<span class="badge bg-secondary">pendiente</span>{% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-4">Sin registros</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Últimos permisos</h5>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_permisos' %}">Ver todos</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead><tr><th>#</th><th>Tipo</th><th>Estado</th><th>Creado</th></tr></thead>
+            <tbody>
+              {% for pm in ultimos_permisos %}
+                <tr>
+                  <td>#{{ pm.id }}</td>
+                  <td>{{ pm.tipo|default:"—" }}</td>
+                  <td>{{ pm.estado }}</td>
+                  <td>{{ pm.creado_en|date:"d/m/Y H:i" }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-4">Sin registros</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+{# Chart.js: si tu base.html ya lo incluye, puedes quitar esta línea #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  (function () {
+    const ingresos = {{ ingresos_mes|safe }};   // [{mes:"YYYY-MM", total: 123.0}, ...]
+    const estados  = {{ pagos_estado|safe }};   // {"success": X, "failed": Y, "pending": Z}
+
+    // Ingresos por mes (barra)
+    const labels = ingresos.map(i => i.mes);
+    const data   = ingresos.map(i => i.total);
+    const ctx1 = document.getElementById('chartIngresos').getContext('2d');
+    new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{ label: 'Q Ingresos', data: data }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    // Pagos por estado (doughnut)
+    const ctx2 = document.getElementById('chartEstados').getContext('2d');
+    const estLabels = ['success','failed','pending'];
+    const estData = estLabels.map(k => estados[k] || 0);
+    new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: estLabels,
+        datasets: [{ data: estData }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  })();
+</script>
 {% endblock %}
