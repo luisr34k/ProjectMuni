@@ -140,7 +140,7 @@
               {% for pm in ultimos_permisos %}
                 <tr>
                   <td>#{{ pm.id }}</td>
-                  <td>{{ pm.tipo|default:"—" }}</td>
+                  <td>{{ pm.tipo_permiso|default:"—" }}</td>
                   <td>{{ pm.estado }}</td>
                   <td>{{ pm.creado_en|date:"d/m/Y H:i" }}</td>
                 </tr>
