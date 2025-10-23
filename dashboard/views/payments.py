@@ -138,20 +138,32 @@ def vincular_cuenta(request):
         form = VincularCuentaForm(request.POST)
         if form.is_valid():
             nit = form.cleaned_data["nit"].strip()
-            cat = form.cleaned_data["codigo_catastral"].strip()
-            titular = (form.cleaned_data.get("titular") or "").strip()
+            titular_in = (form.cleaned_data.get("titular") or "").strip()
 
-            qs = CuentaServicio.objects.filter(nit=nit, codigo_catastral=cat, activa=True)
-            if titular:
-                qs = qs.filter(titular__iexact=titular)
+            try:
+                # Regla de negocio: un NIT = una sola cuenta activa
+                cuenta = CuentaServicio.objects.get(nit=nit, activa=True)
+            except CuentaServicio.DoesNotExist:
+                messages.error(request, "No encontramos una cuenta activa con ese NIT.")
+                return redirect("vincular_cuenta")
+            except CuentaServicio.MultipleObjectsReturned:
+                # Por si algún dato legado rompe la unicidad
+                messages.error(
+                    request,
+                    "Hay más de una cuenta con ese NIT. Contacta a la municipalidad para depurar el NIT."
+                )
+                return redirect("vincular_cuenta")
 
-            cuenta = qs.first()
-            if not cuenta:
-                messages.error(request, "No encontramos una cuenta con esos datos. Verifica e intenta de nuevo.")
+            # Si el usuario escribió titular, verifica coherencia (sin obligarlo)
+            if titular_in and cuenta.titular and cuenta.titular.strip().lower() != titular_in.lower():
+                messages.error(
+                    request,
+                    "El titular no coincide con la cuenta encontrada por NIT. Verifica los datos."
+                )
                 return redirect("vincular_cuenta")
 
             if cuenta.usuario and cuenta.usuario != request.user:
-                messages.error(request, "Esta cuenta ya está vinculada a otro usuario. Contacta a la muni.")
+                messages.error(request, "Esta cuenta ya está vinculada a otro usuario.")
                 return redirect("vincular_cuenta")
 
             cuenta.usuario = request.user

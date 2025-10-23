@@ -5,34 +5,110 @@
   <h4>Tren de Aseo</h4>
 
   {% if not cuenta %}
-    <div class="alert alert-info">No tienes una cuenta vinculada.</div>
-    <a class="btn btn-primary" href="{% url 'vincular_cuenta' %}">Vincular cuenta</a>
+      <section class="text-center py-5">
+        <div class="mx-auto mb-3 rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center"
+            style="width:68px;height:68px;">
+          <i class="bi bi-box-seam fs-3 text-primary"></i>
+        </div>
+        <h5 class="mb-2">No hay cuenta vinculada</h5>
+        <p class="text-muted mb-4">Conecta tu cuenta de Tren de Aseo para ver tu historial y realizar pagos.</p>
+        <a class="btn btn-primary btn-lg px-4 rounded-3 shadow-sm" href="{% url 'vincular_cuenta' %}">
+          Vincular cuenta
+        </a>
+      </section>
   {% else %}
-    <p><strong>Cuenta:</strong> {{ cuenta.id }} · {{ cuenta.titular }}</p>
+  <div class="row g-4 mt-2">
+    <!-- Resumen de cuenta -->
+    <div class="col-12 col-lg-5">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-3">
+            <div class="rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center"
+                 style="width:48px;height:48px;">
+              <i class="bi bi-person-vcard fs-5 text-primary"></i>
+            </div>
+            <div class="ms-3">
+              <h5 class="mb-0">{{ cuenta.titular }}</h5>
+              <small class="text-muted">Cuenta #{{ cuenta.id }}</small>
+            </div>
+          </div>
 
-    {% if boletas %}
-      <table class="table">
-        <thead><tr><th>Periodo</th><th>Estado</th><th class="text-end">Saldo</th></tr></thead>
-        <tbody>
-          {% for b in boletas %}
-            <tr>
-              <td>{{ b.periodo.etiqueta }}</td>
-              <td>{{ b.estado|title }}</td>
-              <td class="text-end">Q {{ b.saldo_actual }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-        <tfoot>
-          <tr><th colspan="2" class="text-end">Total</th><th class="text-end">Q {{ total }}</th></tr>
-        </tfoot>
-      </table>
-      {% if checkout_url %}
-        <a class="btn btn-success" href="{{ checkout_url }}">Pagar en línea</a>
-      {% else %}
-        <div class="alert alert-secondary">No hay saldo por pagar.</div>
-      {% endif %}
-    {% else %}
-      <div class="alert alert-secondary">No hay boletas pendientes.</div>
-    {% endif %}
-  {% endif %}
+          <dl class="row small mb-4">
+            <dt class="col-6 text-muted">NIT</dt><dd class="col-6">{{ cuenta.nit }}</dd>
+            <dt class="col-6 text-muted">Código catastral</dt><dd class="col-6">{{ cuenta.codigo_catastral }}</dd>
+            <dt class="col-6 text-muted">Estado</dt>
+            <dd class="col-6">
+              <span class="badge rounded-pill bg-success-subtle text-success border">Activa</span>
+            </dd>
+          </dl>
+
+          <div class="d-flex gap-2">
+            {% if checkout_url and total > 0 %}
+              <a class="btn btn-secondary flex-fill" href="{{ checkout_url }}">
+                <i class="bi bi-credit-card me-1"></i> Pagar Q {{ total }}
+              </a>
+            {% endif %}
+            <a class="btn btn-outline-secondary" href="{% url 'vincular_cuenta' %}">
+              Cambiar cuenta
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Boletas -->
+    <div class="col-12 col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="fw-semibold">Boletas</span>
+          <span class="badge bg-secondary-subtle text-secondary border">
+            Total: Q {{ total }}
+          </span>
+        </div>
+
+        {% if boletas %}
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Periodo</th>
+                  <th>Estado</th>
+                  <th class="text-end">Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for b in boletas %}
+                  <tr>
+                    <td class="fw-medium">{{ b.periodo.etiqueta }}</td>
+                    <td>
+                      {% if b.estado == 'pendiente' %}
+                        <span class="badge rounded-pill bg-warning-subtle text-warning border">Pendiente</span>
+                      {% elif b.estado == 'pagado' or b.estado == 'pagada' %}
+                        <span class="badge rounded-pill bg-success-subtle text-success border">Pagado</span>
+                      {% elif b.estado == 'vencido' %}
+                        <span class="badge rounded-pill bg-danger-subtle text-danger border">Vencido</span>
+                      {% else %}
+                        <span class="badge rounded-pill bg-secondary-subtle text-secondary border">{{ b.estado|title }}</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">Q {{ b.saldo_actual }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="table-light">
+                <tr>
+                  <th colspan="2" class="text-end">Total a pagar</th>
+                  <th class="text-end">Q {{ total }}</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        {% else %}
+          <div class="p-4 text-center text-muted">No hay boletas pendientes.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
 {% endblock %}

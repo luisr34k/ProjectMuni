@@ -1,23 +1,32 @@
-{# templates/payments/vincular_cuenta.html #}
+{# templates/pagos/vincular_cuenta.html #}
 {% extends "user/index.html" %}
 {% load widget_tweaks %}
 
 {% block content %}
-<h4>Vincular cuenta de tren de aseo</h4>
-<form method="post">
-  {% csrf_token %}
-  <div class="mb-3">
-    <label class="form-label">NIT</label>
-    {{ form.nit|add_class:"form-control" }}
+<div class="d-flex justify-content-center mt-5">
+  <div class="card border-0 shadow-lg p-4" style="max-width: 480px; width: 100%; border-radius: 1rem;">
+    <h4 class="text-center mb-4">Vincular cuenta de tren de aseo</h4>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group mb-3">
+        <label for="id_nit" class="fw-semibold">NIT</label>
+        {{ form.nit|add_class:"form-control rounded-3" }}
+      </div>
+
+      <div class="form-group mb-4">
+        <label for="id_titular" class="fw-semibold">Titular (opcional)</label>
+        {{ form.titular|add_class:"form-control rounded-3" }}
+        <small class="text-muted">
+          Sólo para verificar coincidencia. Si lo dejas vacío, se vinculará por NIT.
+        </small>
+      </div>
+
+      <div class="text-center">
+        <button class="btn btn-primary px-5 py-2 rounded-3 shadow-sm">Vincular</button>
+      </div>
+    </form>
   </div>
-  <div class="mb-3">
-    <label class="form-label">Código catastral</label>
-    {{ form.codigo_catastral|add_class:"form-control" }}
-  </div>
-  <div class="mb-3">
-    <label class="form-label">Titular (opcional)</label>
-    {{ form.titular|add_class:"form-control" }}
-  </div>
-  <button class="btn btn-primary">Vincular</button>
-</form>
+</div>
+
 {% endblock %}
+

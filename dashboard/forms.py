@@ -495,5 +495,8 @@ class AdminPermisoEstadoForm(forms.ModelForm):
 
 class VincularCuentaForm(forms.Form):
     nit = forms.CharField(max_length=20, label="NIT")
-    codigo_catastral = forms.CharField(max_length=50, label="Código catastral")
-    titular = forms.CharField(max_length=120, label="Titular (opcional)", required=False)
+    titular = forms.CharField(
+        max_length=120,
+        label="Titular (opcional)",
+        required=False
+    )
