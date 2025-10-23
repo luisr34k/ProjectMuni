@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Admin · Cartera{% endblock %}
+
+{% block content %}
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0">Cartera / Recordatorios</h4>
+    <form id="form-enviar" action="{% url 'admin_cartera_enviar' %}" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="user_ids" id="user_ids_hidden">
+      <button type="submit" class="btn btn-primary">Enviar recordatorios</button>
+    </form>
+  </div>
+
+  <form class="card p-3 mb-3" method="get">
+    <div class="row g-2">
+      <div class="col-12 col-md-4">
+        <label class="form-label">Buscar</label>
+        <input type="text" class="form-control" name="q" value="{{ fil_q }}" placeholder="email / titular / catastral">
+      </div>
+      <!-- Si activas filtros por fechas, agrega inputs date aquí -->
+      <div class="col-6 col-md-2">
+        <label class="form-label">Deuda mínima (Q)</label>
+        <input type="number" step="0.01" class="form-control" name="min_q" value="{{ fil_min }}">
+      </div>
+      <div class="col-12 col-md-2 d-flex align-items-end">
+        <button class="btn btn-outline-primary w-100" type="submit">Filtrar</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th style="width:32px;"><input type="checkbox" id="chk_all"></th>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Cuentas</th>
+                <th>Boletas pend.</th>
+                <th>Total adeudado (Q)</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for r in filas %}
+            <tr>
+                <td><input type="checkbox" class="chk_row" value="{{ r.cuenta__usuario_id }}"></td>
+                <td>{{ r.cuenta__usuario__nombre }} {{ r.cuenta__usuario__apellido }}</td>
+                <td>{{ r.cuenta__usuario__correo }}</td>
+                <td>{{ r.cuentas }}</td>
+                <td>{{ r.boletas_pendientes }}</td>
+                <td>{{ r.total_adeudado }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-4">Sin pendientes</td></tr>
+            {% endfor %}
+            </tbody>
+
+      </table>
+    </div>
+    <div class="card-footer text-muted">
+      Selecciona varios y presiona “Enviar recordatorios”.
+    </div>
+  </div>
+
+
+<script>
+  const chkAll = document.getElementById('chk_all');
+  const chks = () => Array.from(document.querySelectorAll('.chk_row'));
+  const formEnviar = document.getElementById('form-enviar');
+  const hidden = document.getElementById('user_ids_hidden');
+
+  chkAll?.addEventListener('change', e => {
+    chks().forEach(c => c.checked = chkAll.checked);
+  });
+
+  formEnviar?.addEventListener('submit', e => {
+    const ids = chks().filter(c => c.checked).map(c => c.value);
+    if (!ids.length) {
+      e.preventDefault();
+      alert('Selecciona al menos un usuario.');
+      return false;
+    }
+    hidden.value = ids.join(',');
+  });
+</script>
+{% endblock %}

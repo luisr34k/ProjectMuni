@@ -39,13 +39,15 @@
     </div>
 
     <div class="col-12 col-md-3">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="text-muted small">Boletas pendientes</div>
-          <div class="display-6 fw-semibold">{{ boletas_pendientes }}</div>
-          <div class="text-muted">Saldo: Q {{ boletas_pend_total }}</div>
+      <a href="{% url 'admin_cartera' %}" class="text-decoration-none text-reset">
+        <div class="card h-100 hover-shadow-sm">
+          <div class="card-body">
+            <div class="text-muted small">Boletas pendientes</div>
+            <div class="display-6 fw-semibold">{{ boletas_pendientes }}</div>
+            <div class="text-muted">Saldo: Q {{ boletas_pend_total }}</div>
+          </div>
         </div>
-      </div>
+      </a>
     </div>
   </div>
 

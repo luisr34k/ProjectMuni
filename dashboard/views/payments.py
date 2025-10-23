@@ -7,6 +7,7 @@ import logging
 from datetime import date
 from decimal import Decimal
 from decimal import ROUND_HALF_UP
+from django.db.models import Q, Sum, Count
 import csv
 from django.core.paginator import Paginator
 from django.utils.dateparse import parse_date
@@ -744,3 +745,145 @@ def admin_pago_reenviar_recibo(request, pk: int):
         messages.error(request, f"Error reenviando recibo: {e}")
     return redirect("admin_pago_detalle", pk=pk)
 
+@staff_member_required
+def admin_cartera(request):
+    """
+    Lista usuarios con boletas pendientes: total adeudado, cantidad de boletas y cuentas.
+    Filtros: texto libre por correo/nombre/apellido/catastral; deuda mínima.
+    """
+    from dashboard.models import Boleta, CuentaServicio
+
+    q = (request.GET.get("q") or "").strip()
+    min_q = (request.GET.get("min_q") or "").strip()
+
+    boletas = (Boleta.objects
+               .select_related("cuenta", "cuenta__usuario")
+               .filter(estado__in=["pendiente", "parcial"])
+               .filter(cuenta__usuario__isnull=False))
+
+    if q:
+        boletas = boletas.filter(
+            Q(cuenta__usuario__correo__icontains=q) |
+            Q(cuenta__usuario__nombre__icontains=q) |
+            Q(cuenta__usuario__apellido__icontains=q) |
+            Q(cuenta__titular__icontains=q) |
+            Q(cuenta__codigo_catastral__icontains=q)
+        )
+
+    resumen = (boletas
+               .values("cuenta__usuario_id",
+                       "cuenta__usuario__correo",
+                       "cuenta__usuario__nombre",
+                       "cuenta__usuario__apellido")
+               .annotate(
+                   total_adeudado=Sum("saldo_actual"),
+                   boletas_pendientes=Count("id"),
+                   cuentas_distintas=Count("cuenta_id", distinct=True),
+               )
+               .order_by("-total_adeudado"))
+
+    # Deuda mínima
+    if min_q:
+        try:
+            from decimal import Decimal
+            resumen = resumen.filter(total_adeudado__gte=Decimal(min_q))
+        except Exception:
+            pass
+
+    # Listado de códigos catastrales por usuario (compacto)
+    user_ids = [r["cuenta__usuario_id"] for r in resumen]
+    cuentas = (CuentaServicio.objects
+               .filter(usuario_id__in=user_ids)
+               .values("usuario_id", "codigo_catastral", "id"))
+
+    por_usuario = {}
+    for c in cuentas:
+        por_usuario.setdefault(c["usuario_id"], []).append(
+            c["codigo_catastral"] or f"#{c['id']}"
+        )
+
+    enriched = []
+    for r in resumen:
+        r["cuentas"] = ", ".join(por_usuario.get(r["cuenta__usuario_id"], [])[:5])
+        enriched.append(r)
+
+    ctx = {
+        "fil_q": q,
+        "fil_min": min_q,
+        "filas": enriched,
+    }
+    return render(request, "admin_panel/cartera.html", ctx)
+
+@staff_member_required
+@require_POST
+def admin_cartera_enviar(request):
+    """
+    Envía recordatorios por correo a la selección. Acepta:
+      - múltiples inputs name="user_ids[]"
+      - un solo input name="user_ids" con CSV "1,2,3"
+    """
+    ids = request.POST.getlist("user_ids[]")
+    if not ids:
+        raw = (request.POST.get("user_ids") or "").strip()
+        if raw:
+            ids = [x for x in raw.split(",") if x.strip()]
+
+    if not ids:
+        messages.warning(request, "No seleccionaste destinatarios.")
+        return redirect("admin_cartera")
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    usuarios = (User.objects
+                .filter(id__in=ids)
+                .only("id", "correo", "nombre", "apellido"))
+
+    enviados, fallidos = 0, 0
+
+    from dashboard.models import Boleta
+    for u in usuarios:
+        agg = (Boleta.objects
+               .filter(cuenta__usuario=u, estado__in=["pendiente", "parcial"])
+               .aggregate(total_adeudado=Sum("saldo_actual"), boletas_pendientes=Count("id")))
+
+        total = agg["total_adeudado"] or 0
+        cant = agg["boletas_pendientes"] or 0
+        destino = getattr(u, "correo", None)
+        nombre = f"{getattr(u, 'nombre', '')} {getattr(u, 'apellido', '')}".strip() or destino
+
+        if not destino or total <= 0:
+            continue
+        try:
+            _enviar_email_recordatorio(destino, nombre, total, cant, request)
+            enviados += 1
+        except Exception as e:
+            logging.exception("Error enviando recordatorio a %s: %s", destino, e)
+            fallidos += 1
+
+    if enviados:
+        messages.success(request, f"Recordatorios enviados: {enviados}. Fallidos: {fallidos}.")
+    else:
+        messages.info(request, "No se envió ningún correo (¿sin correo o sin deuda?).")
+    return redirect("admin_cartera")
+
+
+def _enviar_email_recordatorio(correo, nombre, total, cant, request=None):
+    from django.core.mail import send_mail
+    from django.conf import settings
+
+    asunto = "Recordatorio de pago – Municipalidad de San Luis"
+    cuerpo = (
+        f"Hola {nombre},\n\n"
+        f"Detectamos {cant} boleta(s) pendiente(s) de pago.\n"
+        f"Monto total estimado: Q {total:.2f}\n\n"
+        f"Ingresa al portal para realizar tu pago en línea.\n\n"
+        f"— Municipalidad de San Luis"
+    )
+    send_mail(
+        subject=asunto,
+        message=cuerpo,
+        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        recipient_list=[correo],
+        fail_silently=False,
+    )
