@@ -132,6 +132,8 @@ else:
     AWS_S3_ADDRESSING_STYLE = "virtual"  # URL estilo bucket.s3.region.amazonaws.com
     AWS_DEFAULT_ACL = None               # deja el ACL en None; usaremos política de bucket
     AWS_S3_FILE_OVERWRITE = False        # no sobreescribir archivos con mismo nombre
+    AWS_QUERYSTRING_AUTH = False
+    AWS_DEFAULT_ACL = None  
     AWS_S3_OBJECT_PARAMETERS = {
         "CacheControl": "max-age=86400",
     }
