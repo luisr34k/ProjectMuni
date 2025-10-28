@@ -879,7 +879,6 @@ def admin_cartera_enviar(request):
         messages.info(request, "No se envió ningún correo (¿sin correo o sin deuda?).")
     return redirect("admin_cartera")
 
-
 def _enviar_email_recordatorio(correo, nombre, total, cant, request=None):
     from django.core.mail import send_mail
     from django.conf import settings
@@ -899,3 +898,5 @@ def _enviar_email_recordatorio(correo, nombre, total, cant, request=None):
         recipient_list=[correo],
         fail_silently=False,
     )
+    
+    
