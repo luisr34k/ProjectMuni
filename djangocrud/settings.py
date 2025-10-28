@@ -118,32 +118,60 @@ else:
     }
 
 
-# --- MEDIA: local en DEBUG, S3 en producción ---
+# --- MEDIA/STORAGES ---
 if DEBUG:
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = BASE_DIR / 'media'
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
 else:
-    # Config S3
     AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
+    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")  # p.ej. 'muni-sanluis-media'
     AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-2")
     AWS_S3_SIGNATURE_VERSION = "s3v4"
-    AWS_S3_ADDRESSING_STYLE = "virtual"  # URL estilo bucket.s3.region.amazonaws.com
-    AWS_DEFAULT_ACL = None               # deja el ACL en None; usaremos política de bucket
-    AWS_S3_FILE_OVERWRITE = False        # no sobreescribir archivos con mismo nombre
-    AWS_S3_OBJECT_PARAMETERS = {
-        "CacheControl": "max-age=86400",
+    AWS_S3_ADDRESSING_STYLE = "virtual"  # bucket.s3.region.amazonaws.com
+
+    # MUY IMPORTANTE: bucket privado => URLs firmadas
+    AWS_QUERYSTRING_AUTH = True          # <— firmar las URLs (recomendado)
+    AWS_DEFAULT_ACL = None
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+
+    # Puedes omitir AWS_S3_CUSTOM_DOMAIN para que django-storages
+    # genere el dominio correcto automáticamente con firma.
+    # Si lo quieres mantener, también funciona:
+    # AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+    # MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+    # Si lo omites, MEDIA_URL la resuelve el backend con firma.
+
+    STORAGES = {
+        "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
     }
 
-    AWS_S3_CUSTOM_DOMAIN = os.getenv(
-        "AWS_S3_CUSTOM_DOMAIN",
-        f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
-    )
 
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
-    # MEDIA_ROOT no se usa con S3
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",  # imprime tracebacks de 500
+            "propagate": False,
+        },
+    },
+}
 
 
 MESSAGE_TAGS = {
