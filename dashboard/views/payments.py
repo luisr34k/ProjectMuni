@@ -9,6 +9,7 @@ from decimal import Decimal
 from decimal import ROUND_HALF_UP
 from django.db.models import Q, Sum, Count
 import csv
+from uuid import uuid4
 from django.core.paginator import Paginator
 from django.utils.dateparse import parse_date
 from django.db.models import Q
@@ -50,23 +51,22 @@ log = logging.getLogger(__name__)
 FEE_RATE  = Decimal("0.045")   # 4.5 %
 FEE_FIXED = Decimal("2.00")    # Q2 fijo por transacción
 
+@login_required(login_url="login")
 def crear_pago_online(request, cuenta_id):
     cuenta = get_object_or_404(CuentaServicio, pk=cuenta_id)
 
-    boletas = Boleta.objects.filter(
-        cuenta=cuenta, estado__in=["pendiente", "parcial"]
-    ).select_related("periodo")
+    boletas = (Boleta.objects
+               .filter(cuenta=cuenta, estado__in=["pendiente", "parcial"])
+               .select_related("periodo"))
 
-    total_neto = sum(b.saldo_actual for b in boletas).quantize(Decimal("0.01"))
+    total_neto = sum((b.saldo_actual for b in boletas), Decimal("0")).quantize(Decimal("0.01"))
     if total_neto <= 0:
         return HttpResponseBadRequest("No hay saldo por pagar.")
 
-    # Inflar el total una sola vez
-    total_bruto = (total_neto + FEE_FIXED) / (Decimal("1.00") - FEE_RATE)
-    total_bruto = total_bruto.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    # inflar (comisión incluida) → total_bruto en centavos
+    total_bruto = ((total_neto + FEE_FIXED) / (Decimal("1.00") - FEE_RATE)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     cents = int((total_bruto * 100).quantize(Decimal('1')))
 
-    # Un solo ítem en Recurrente
     items = [{
         "name": f"Pago tren de aseo ({len(boletas)} meses)",
         "currency": "GTQ",
@@ -74,26 +74,32 @@ def crear_pago_online(request, cuenta_id):
         "quantity": 1
     }]
 
-    # Crear Pago interno
-    pago = Pago.objects.create(
-        cuenta=cuenta,
-        metodo='online',
-        monto=total_neto,
-        observaciones='Pago iniciado en checkout Recurrente',
-        usuario_registra=request.user if request.user.is_authenticated else None,
-    )
-
     success_url = request.build_absolute_uri(reverse("rec_success"))
     cancel_url  = request.build_absolute_uri(reverse("rec_cancel"))
 
+    # 1) Creamos una TransaccionOnline "local/pending" (aún sin orden_id real)
+    with transaction.atomic():
+        tx = TransaccionOnline.objects.create(
+            orden_id=f"local_{uuid4()}",
+            estado="pending",
+            payload={"created_locally": True, "total_neto": str(total_neto)}
+        )
+
+    # 2) Creamos el checkout en Recurrente enviando metadata para correlacionar
     chk = rec.create_checkout(
         items=items,
         success_url=success_url,
         cancel_url=cancel_url,
         user_id=str(cuenta.usuario_id) if cuenta.usuario_id else None,
-        metadata={"pago_id": pago.pk, "cuenta_id": cuenta.pk}
+        metadata={
+            "tx_id": tx.pk,
+            "cuenta_id": cuenta.pk,
+            # opcional, por auditoría
+            "total_neto": str(total_neto),
+        }
     )
 
+    # 3) Redirigir al checkout
     return HttpResponseRedirect(chk["checkout_url"])
 
 def recurrente_success(request):
@@ -222,12 +228,6 @@ def recurrente_dev_simular_success_get(request):
 
 @csrf_exempt
 def recurrente_webhook(request):
-    """
-    Webhook Recurrente (Svix) con verificación de firma + idempotencia.
-    Maneja eventos:
-      • payment_intent.succeeded / failed
-      • bank_transfer_intent.succeeded / failed
-    """
     if request.method != "POST":
         return HttpResponseBadRequest("Invalid method")
 
@@ -236,7 +236,7 @@ def recurrente_webhook(request):
         log.error("[REC-HOOK] Missing signing secret")
         return HttpResponseBadRequest("Missing signing secret")
 
-    # 1) Verificar firma Svix
+    # 1) Verificar firma
     try:
         payload_raw = request.body
         headers = {k: v for k, v in request.headers.items()}
@@ -245,9 +245,10 @@ def recurrente_webhook(request):
         log.exception("[REC-HOOK] Invalid signature: %s", e)
         return HttpResponseBadRequest(f"Invalid signature: {e}")
 
-    # 2) Normalizar
+    # 2) Normalizar básicos
     event_type = verified.get("type") or verified.get("event_type")
     data_obj   = verified.get("data") or verified
+
     external_id = (
         data_obj.get("id")
         or (data_obj.get("payment") or {}).get("id")
@@ -265,79 +266,131 @@ def recurrente_webhook(request):
         or ((data_obj.get("checkout") or {}).get("metadata"))
         or {}
     )
-    pago_id = meta.get("pago_id")
+    tx_id = meta.get("tx_id")
+    cuenta_id = meta.get("cuenta_id")
 
-    log.info("[REC-HOOK] event_type=%s external_id=%s pago_id=%s", event_type, external_id, pago_id)
+    # cantidades (si vienen en payload)
+    def _amount_from_payload(d):
+        # Ajusta al shape real de Recurrente; esto es un ejemplo robusto
+        cents = (
+            d.get("amount_in_cents")
+            or (d.get("payment") or {}).get("amount_in_cents")
+            or (d.get("checkout") or {}).get("amount_in_cents")
+        )
+        if cents is None:
+            return None
+        return (Decimal(cents) / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    # Caso: evento sin pago_id (p. ej. test o replay antiguo)
-    if not pago_id:
-        with transaction.atomic():
+    monto_bruto = _amount_from_payload(data_obj)
+
+    log.info("[REC-HOOK] type=%s ext=%s tx_id=%s cuenta_id=%s", event_type, external_id, tx_id, cuenta_id)
+
+    # Conjuntos de eventos
+    card_succeeded = {"payment_intent.succeeded", "payment.succeeded", "checkout.succeeded"}
+    card_failed    = {"payment_intent.failed", "payment.failed"}
+    bank_succeeded = {"bank_transfer_intent.succeeded"}
+    bank_failed    = {"bank_transfer_intent.failed"}
+
+    # 3) Idempotencia + creación del Pago SOLO en success
+    with transaction.atomic():
+        # a) Resolver la TransaccionOnline
+        if tx_id:
+            tx = TransaccionOnline.objects.select_for_update().get(pk=tx_id)
+            # Si ya tiene orden real distinto, mantener; si es local_, actualízalo
+            if tx.orden_id.startswith("local_"):
+                tx.orden_id = external_id
+        else:
             tx, _ = TransaccionOnline.objects.select_for_update().get_or_create(
                 orden_id=external_id,
                 defaults={"estado": "pending", "payload": verified}
             )
-            tx.estado = "ignored"
-            tx.payload = verified
-            tx.save(update_fields=["estado", "payload", "actualizado_en"])
-        return JsonResponse({"status": "ignored", "reason": "missing pago_id"}, status=200)
 
-    # 3) Procesamiento idempotente
-    with transaction.atomic():
-        tx, _ = TransaccionOnline.objects.select_for_update().get_or_create(
-            orden_id=external_id,
-            defaults={"estado": "pending", "payload": verified}
-        )
-
-        # Si ya fue procesado, ignorar
-        if tx.estado in ("success", "failed"):
-            log.info("[REC-HOOK] already processed external_id=%s estado=%s", external_id, tx.estado)
+        # Si ya quedo finalizada, salir idempotente
+        if tx.estado in ("success", "failed", "canceled", "ignored"):
+            log.info("[REC-HOOK] idempotent exit ext=%s estado=%s", external_id, tx.estado)
             return JsonResponse({"status": "ignored", "estado": tx.estado}, status=200)
 
-        pago = Pago.objects.select_for_update().get(pk=pago_id)
-
-        card_succeeded = {"payment_intent.succeeded", "payment.succeeded"}
-        card_failed    = {"payment_intent.failed", "payment.failed"}
-        bank_succeeded = {"bank_transfer_intent.succeeded"}
-        bank_failed    = {"bank_transfer_intent.failed"}
-
+        # b) Procesar por tipo
         if event_type in card_succeeded or event_type in bank_succeeded:
-            if not pago.referencia:
-                pago.referencia = external_id
-                pago.save(update_fields=["referencia"])
-            pago.distribuir_en_boletas()
+            # Crear Pago una sola vez
+            # Necesitamos la cuenta
+            if not cuenta_id:
+                log.warning("[REC-HOOK] success sin cuenta_id. Marcar ignored.")
+                tx.estado = "ignored"
+                tx.payload = verified
+                tx.save(update_fields=["estado", "payload", "actualizado_en"])
+                return JsonResponse({"status": "ignored"}, status=200)
 
+            from dashboard.models import CuentaServicio, Boleta, Pago, AplicacionPago
+            cuenta = CuentaServicio.objects.select_for_update().get(id=cuenta_id, activa=True)
+
+            # Definir monto a aplicar: si no viene del payload, usamos lo guardado al crear tx (total_neto)
+            total_neto = None
+            try:
+                if tx.payload and tx.payload.get("created_locally") and tx.payload.get("total_neto"):
+                    total_neto = Decimal(tx.payload["total_neto"]).quantize(Decimal("0.01"))
+            except Exception:
+                total_neto = None
+
+            monto_aplicar = (monto_bruto if monto_bruto is not None else total_neto)
+            if monto_aplicar is None:
+                # Como fallback, sumar boletas pendientes a este instante
+                boletas_qs = (Boleta.objects
+                              .select_for_update()
+                              .filter(cuenta=cuenta, estado__in=["pendiente", "parcial"]))
+                monto_aplicar = sum((b.saldo_actual for b in boletas_qs), Decimal("0")).quantize(Decimal("0.01"))
+
+            # Crear pago
+            pago = Pago.objects.create(
+                cuenta=cuenta,
+                metodo="online",
+                referencia=external_id,
+                monto=monto_aplicar,
+                usuario_registra=getattr(cuenta, "usuario", None),
+                observaciones="Pago confirmado por Recurrente (webhook)."
+            )
+
+            # Distribuir con bloqueo de boletas
+            boletas = (Boleta.objects
+                       .select_for_update()
+                       .filter(cuenta=cuenta, estado__in=["pendiente", "parcial"])
+                       .select_related("periodo")
+                       .order_by("periodo__anio", "periodo__mes", "creada_en"))
+
+            restante = monto_aplicar
+            for b in boletas:
+                if restante <= 0:
+                    break
+                antes = b.saldo_actual
+                restante = b.aplicar(restante)
+                aplicado = antes - b.saldo_actual
+                if aplicado > 0:
+                    AplicacionPago.objects.create(pago=pago, boleta=b, monto_aplicado=aplicado)
+
+            # Cerrar tx
             tx.estado = "success"
             tx.pago = pago
             tx.payload = verified
-            tx.save(update_fields=["estado", "pago", "payload", "actualizado_en"])
+            tx.save(update_fields=["estado", "pago", "payload", "orden_id", "actualizado_en"])
 
-            # 🧩 Enviar recibo solo tras commit (seguro)
+            # Enviar recibo post-commit
             def _send_receipt():
                 try:
                     ok = send_receipt_email(pago)
-                    log.info("[REC-HOOK] recibo enviado=%s pago_id=%s dest=%s",
-                             ok, pago.pk,
-                             getattr(getattr(pago.cuenta, "usuario", None), "email", ""))
+                    log.info("[REC-HOOK] recibo enviado=%s pago_id=%s", ok, pago.pk)
                 except Exception as e:
-                    log.exception("[REC-HOOK] error enviando recibo pago_id=%s: %s", pago.pk, e)
-
+                    log.exception("[REC-HOOK] error recibo pago_id=%s: %s", pago.pk, e)
             transaction.on_commit(_send_receipt)
 
         elif event_type in card_failed or event_type in bank_failed:
-            reason = (
-                data_obj.get("failure_reason")
-                or (data_obj.get("checkout") or {}).get("failure_reason")
-            )
             tx.estado = "failed"
             tx.payload = verified
-            tx.save(update_fields=["estado", "payload", "actualizado_en"])
-            log.info("[REC-HOOK] marcado failed external_id=%s pago_id=%s reason=%s",
-                     external_id, pago_id, reason)
+            tx.save(update_fields=["estado", "payload", "orden_id", "actualizado_en"])
 
         else:
+            # otros eventos: persistimos payload para auditoría
             tx.payload = verified
-            tx.save(update_fields=["payload", "actualizado_en"])
-            log.info("[REC-HOOK] evento ignorado=%s external_id=%s", event_type, external_id)
+            tx.save(update_fields=["payload", "orden_id", "actualizado_en"])
 
     return JsonResponse({"status": "ok", "event_type": event_type}, status=200)
 
