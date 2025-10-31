@@ -500,3 +500,4 @@ class VincularCuentaForm(forms.Form):
         label="Titular (opcional)",
         required=False
     )
+    

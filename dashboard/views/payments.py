@@ -74,21 +74,24 @@ def crear_pago_online(request, cuenta_id):
         "quantity": 1
     }]
 
+    # Crear Pago interno
+    pago = Pago.objects.create(
+        cuenta=cuenta,
+        metodo='online',
+        monto=total_neto,
+        observaciones='Pago iniciado en checkout Recurrente',
+        usuario_registra=request.user if request.user.is_authenticated else None,
+    )
+
     success_url = request.build_absolute_uri(reverse("rec_success"))
     cancel_url  = request.build_absolute_uri(reverse("rec_cancel"))
 
-    metadata = {
-        "cuenta_id": cuenta.pk,
-        "usuario_id": getattr(request.user, "id", None),
-        "monto_neto": str(total_neto),  # para no recalcular luego
-        "boletas_count": len(boletas),
-    }
     chk = rec.create_checkout(
         items=items,
         success_url=success_url,
         cancel_url=cancel_url,
         user_id=str(cuenta.usuario_id) if cuenta.usuario_id else None,
-        metadata=metadata,
+        metadata={"pago_id": pago.pk, "cuenta_id": cuenta.pk}
     )
 
     return HttpResponseRedirect(chk["checkout_url"])
@@ -268,48 +271,15 @@ def recurrente_webhook(request):
 
     # Caso: evento sin pago_id (p. ej. test o replay antiguo)
     if not pago_id:
-    # Éxitos sin pago_id: crear Pago on-the-fly
-        if event_type in {"payment_intent.succeeded", "payment.succeeded", "bank_transfer_intent.succeeded"}:
-            cuenta_id = (meta.get("cuenta_id") 
-                        or ((verified.get("checkout") or {}).get("metadata") or {}).get("cuenta_id"))
-            from dashboard.models import CuentaServicio, Pago
-            cuenta = CuentaServicio.objects.select_for_update().get(pk=cuenta_id)
-            monto_neto = Decimal( (meta.get("monto_neto") or "0").strip() )
-            pago = Pago.objects.create(
-                cuenta=cuenta,
-                metodo='online',
-                monto=monto_neto,
-                referencia=external_id,
-                usuario_registra=getattr(cuenta, "usuario", None),
-                observaciones='Pago aplicado por webhook (success sin pago_id)'
-            )
-            pago.distribuir_en_boletas()
+        with transaction.atomic():
             tx, _ = TransaccionOnline.objects.select_for_update().get_or_create(
                 orden_id=external_id,
                 defaults={"estado": "pending", "payload": verified}
             )
-            tx.estado = "success"
-            tx.pago = pago
+            tx.estado = "ignored"
             tx.payload = verified
-            tx.save(update_fields=["estado","pago","payload","actualizado_en"])
-
-            # envío de recibo en on_commit como ya haces
-            def _send_receipt():
-                send_receipt_email(pago)
-            transaction.on_commit(_send_receipt)
-
-            return JsonResponse({"status": "ok", "event_type": event_type}, status=200)
-
-        # fallidos sin pago_id -> registrar intento y listo (sin crear Pago)
-        tx, _ = TransaccionOnline.objects.select_for_update().get_or_create(
-            orden_id=external_id,
-            defaults={"estado": "pending", "payload": verified}
-        )
-        tx.estado = "failed" if event_type.endswith(".failed") else "ignored"
-        tx.payload = verified
-        tx.save(update_fields=["estado","payload","actualizado_en"])
-        return JsonResponse({"status": tx.estado}, status=200)
-
+            tx.save(update_fields=["estado", "payload", "actualizado_en"])
+        return JsonResponse({"status": "ignored", "reason": "missing pago_id"}, status=200)
 
     # 3) Procesamiento idempotente
     with transaction.atomic():
