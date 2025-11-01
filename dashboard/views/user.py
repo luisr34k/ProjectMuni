@@ -17,8 +17,27 @@ from dashboard.models import Denuncia, Permiso, Ubicacion
 from dashboard.utils.email_utils import notify_denuncia_creada
 
 
+from django.contrib.auth.decorators import login_required
+from dashboard.models import Pago, Permiso, Denuncia
+
+@login_required(login_url="login")
 def index(request):
-    return render(request, "user/index.html")
+    user = request.user
+
+    # KPIs básicos (puedes ajustar según tus modelos)
+    pagos_totales = Pago.objects.filter(usuario_registra=user).count()
+    pagos_pendientes = Pago.objects.filter(usuario_registra=user, referencia="").count()
+    permisos_count = Permiso.objects.filter(usuario=user).count()
+    denuncias_count = Denuncia.objects.filter(usuario=user).count()
+
+    ctx = {
+        "user": user,
+        "pagos_totales": pagos_totales,
+        "pagos_pendientes": pagos_pendientes,
+        "permisos_count": permisos_count,
+        "denuncias_count": denuncias_count,
+    }
+    return render(request, "user/index.html", ctx)
 
 
 def mapa_publico(request):

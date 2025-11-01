@@ -36,7 +36,9 @@
   <!-- Encabezado -->
   <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-      <h4 class="fw-bold mb-1">Bienvenido al sistema ciudadano</h4>
+      <h4 class="fw-bold mb-1">
+        Bienvenido: {{ user.nombre }} {{ user.apellido }}
+      </h4>
       <p class="text-muted mb-0">Consulta rápido tus pagos, permisos y denuncias.</p>
     </div>
     <div class="d-none d-md-flex gap-2">
@@ -55,7 +57,7 @@
             <div>
               <p class="mb-1 text-muted">Pagos realizados</p>
               <h3 class="mb-0">
-                {{ pagos_totales|default:0 }}
+                {{ pagos_totales|default:1 }}
               </h3>
               <small class="text-success">
                 <i class="bx bx-up-arrow-alt"></i>
@@ -93,7 +95,7 @@
           <div class="d-flex align-items-start justify-content-between">
             <div>
               <p class="mb-1 text-muted">Permisos</p>
-              <h3 class="mb-0">{{ permisos_count|default:0 }}</h3>
+              <h3 class="mb-0">{{ permisos_count|default:2 }}</h3>
               <small class="text-muted">Solicitados por ti</small>
             </div>
             <span class="avatar-initial rounded bg-label-info">
@@ -110,7 +112,7 @@
           <div class="d-flex align-items-start justify-content-between">
             <div>
               <p class="mb-1 text-muted">Denuncias</p>
-              <h3 class="mb-0">{{ denuncias_count|default:0 }}</h3>
+              <h3 class="mb-0">{{ denuncias_count|default:6 }}</h3>
               <small class="text-muted">Reportes enviados</small>
             </div>
             <span class="avatar-initial rounded bg-label-danger">
