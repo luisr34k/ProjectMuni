@@ -63,6 +63,8 @@ urlpatterns = [
     path("admin-panel/pagos/<int:pk>/reenviar-recibo/", pay_views.admin_pago_reenviar_recibo, name="admin_pago_reenviar_recibo"),
     path('admin-panel/cartera/', pay_views.admin_cartera, name='admin_cartera'),
     path('admin-panel/cartera/enviar/', pay_views.admin_cartera_enviar, name='admin_cartera_enviar'),
+    path("admin-panel/pagos/auditoria/", admin_panel.admin_pagos_auditoria, name="admin_pagos_auditoria"),
+
     
     # dashboard/urls.py
     path('pagos/recurrente/dev-simular-success/',     pay_views.recurrente_dev_simular_success,     name='rec_dev_simular_success'),

@@ -5,12 +5,11 @@
 
 {% block content %}
 
-
   <!-- KPIs -->
   <div class="row g-4">
     <div class="col-12 col-md-3">
-      <div class="card h-100">
-        <div class="card-body">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body py-3">
           <div class="text-muted small">Denuncias</div>
           <div class="display-6 fw-semibold">{{ tot_denuncias }}</div>
           <div class="text-muted">Total registradas</div>
@@ -19,8 +18,8 @@
     </div>
 
     <div class="col-12 col-md-3">
-      <div class="card h-100">
-        <div class="card-body">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body py-3">
           <div class="text-muted small">Permisos</div>
           <div class="display-6 fw-semibold">{{ tot_permisos }}</div>
           <div class="text-muted">Total registrados</div>
@@ -29,8 +28,8 @@
     </div>
 
     <div class="col-12 col-md-3">
-      <div class="card h-100">
-        <div class="card-body">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body py-3">
           <div class="text-muted small">Ingresos (éxitos)</div>
           <div class="display-6 fw-semibold">Q {{ total_ingresos }}</div>
           <div class="text-muted">Suma de pagos exitosos</div>
@@ -40,8 +39,8 @@
 
     <div class="col-12 col-md-3">
       <a href="{% url 'admin_cartera' %}" class="text-decoration-none text-reset">
-        <div class="card h-100 hover-shadow-sm">
-          <div class="card-body">
+        <div class="card h-100 shadow-sm hover-shadow-sm">
+          <div class="card-body py-3">
             <div class="text-muted small">Boletas pendientes</div>
             <div class="display-6 fw-semibold">{{ boletas_pendientes }}</div>
             <div class="text-muted">Saldo: Q {{ boletas_pend_total }}</div>
@@ -54,18 +53,18 @@
   <!-- Gráficas -->
   <div class="row g-4 mt-1">
     <div class="col-12 col-lg-8">
-      <div class="card h-100">
-        <div class="card-header"><strong>Ingresos por mes (últimos 6)</strong></div>
-        <div class="card-body">
-          <canvas id="chartIngresos" height="120"></canvas>
+      <div class="card h-100 shadow-sm">
+        <div class="card-header py-2"><strong>Ingresos por mes (últimos 6)</strong></div>
+        <div class="card-body" style="height: 280px;">
+          <canvas id="chartIngresos"></canvas>
         </div>
       </div>
     </div>
     <div class="col-12 col-lg-4">
-      <div class="card h-100">
-        <div class="card-header"><strong>Pagos por estado</strong></div>
-        <div class="card-body">
-          <canvas id="chartEstados" height="120"></canvas>
+      <div class="card h-100 shadow-sm">
+        <div class="card-header py-2"><strong>Pagos por estado</strong></div>
+        <div class="card-body" style="height: 280px;">
+          <canvas id="chartEstados"></canvas>
         </div>
       </div>
     </div>
@@ -73,51 +72,37 @@
 
   <!-- Listas rápidas -->
   <div class="row g-4 mt-1">
-    <div class="col-12 col-xl-6">
-      <div class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Últimas denuncias</h5>
-          <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_denuncias' %}">Ver todas</a>
-        </div>
-        <div class="table-responsive">
-          <table class="table mb-0">
-            <thead><tr><th>#</th><th>Categoría</th><th>Estado</th><th>Creada</th></tr></thead>
-            <tbody>
-              {% for d in ultimas_denuncias %}
-                <tr>
-                  <td><a href="{% url 'admin_denuncia_detalle' d.id %}">#{{ d.id }}</a></td>
-                  <td>{{ d.categoria.nombre }}</td>
-                  <td>{{ d.estado }}</td>
-                  <td>{{ d.creada_en|date:"d/m/Y H:i" }}</td>
-                </tr>
-              {% empty %}
-                <tr><td colspan="4" class="text-center text-muted py-4">Sin registros</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <div class="col-12 col-lg-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-header py-2"><strong>Intentos vs Éxitos (14 días)</strong></div>
+        <div class="card-body" style="height: 300px;">
+          <canvas id="chartIntentos"></canvas>
         </div>
       </div>
     </div>
-
     <div class="col-12 col-xl-6">
-      <div class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Últimos pagos</h5>
+      <div class="card h-100 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+          <h6 class="mb-0">Últimos pagos</h6>
           <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_pagos' %}">Ver todos</a>
         </div>
         <div class="table-responsive">
-          <table class="table mb-0">
-            <thead><tr><th>#</th><th>Cuenta</th><th>Monto</th><th>Estado</th></tr></thead>
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light"><tr><th>#</th><th>Cuenta</th><th>Monto</th><th>Estado</th></tr></thead>
             <tbody>
               {% for p in ultimos_pagos %}
                 <tr>
                   <td>#{{ p.id }}</td>
-                  <td>{{ p.cuenta.codigo_catastral|default:p.cuenta.id }}</td>
+                  <td class="text-truncate" style="max-width:180px;">{{ p.cuenta.codigo_catastral|default:p.cuenta.id }}</td>
                   <td>Q {{ p.monto }}</td>
                   <td>
-                    {# Estado rápido: si hay referencia asumimos éxito; para precisión, usa la lista de pagos (ya anota estado_tx) #}
-                    {% if p.referencia %}<span class="badge bg-success">success</span>
-                    {% else %}<span class="badge bg-secondary">pendiente</span>{% endif %}
+                    {% if p.estado_tx == "success" %}
+                      <span class="badge rounded-pill bg-success-subtle text-success border">success</span>
+                    {% elif p.estado_tx == "failed" %}
+                      <span class="badge rounded-pill bg-danger-subtle text-danger border">failed</span>
+                    {% else %}
+                      <span class="badge rounded-pill bg-secondary-subtle text-secondary border">pending</span>
+                    {% endif %}
                   </td>
                 </tr>
               {% empty %}
@@ -128,22 +113,57 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="col-12">
-      <div class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Últimos permisos</h5>
+  <!-- Mini métricas: misma fila (sin huecos) -->
+  <div class="row g-4 mt-1">
+    <div class="col-12 col-md-6">
+      <a href="{% url 'admin_pagos_auditoria' %}" class="text-decoration-none text-reset">
+        <div class="card h-100 shadow-sm hover-shadow-sm">
+          <div class="card-body py-3">
+            <div class="text-muted small">Auditoría pagos</div>
+            <div class="h2 fw-semibold mb-0">{{ intentos_30 }}</div>
+            <div class="text-muted">Intentos (30 días)</div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body py-3">
+          <div class="text-muted small d-flex justify-content-between">
+            <span>Tiempo de cobro</span>
+            <span class="text-muted">últimos 30 días</span>
+          </div>
+          <div class="d-flex align-items-baseline gap-3">
+            <div class="h2 fw-semibold mb-0">{{ dur_avg }}s</div>
+            <div class="text-muted">p95: {{ dur_p95 }}s</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Permisos + Intentos/Éxitos lado a lado -->
+  <div class="row g-4 mt-1">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+          <h6 class="mb-0">Últimos permisos</h6>
           <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_permisos' %}">Ver todos</a>
         </div>
         <div class="table-responsive">
-          <table class="table mb-0">
-            <thead><tr><th>#</th><th>Tipo</th><th>Estado</th><th>Creado</th></tr></thead>
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light"><tr><th>#</th><th>Tipo</th><th>Estado</th><th>Creado</th></tr></thead>
             <tbody>
               {% for pm in ultimos_permisos %}
                 <tr>
                   <td>#{{ pm.id }}</td>
-                  <td>{{ pm.tipo_permiso|default:"—" }}</td>
-                  <td>{{ pm.estado }}</td>
+                  <td class="text-truncate" style="max-width:200px;">{{ pm.tipo_permiso|default:"—" }}</td>
+                  <td>
+                    <span class="badge bg-secondary-subtle text-secondary border">{{ pm.estado|title }}</span>
+                  </td>
                   <td>{{ pm.creado_en|date:"d/m/Y H:i" }}</td>
                 </tr>
               {% empty %}
@@ -155,50 +175,117 @@
       </div>
     </div>
 
+        <div class="col-12 col-xl-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+          <h6 class="mb-0">Últimas denuncias</h6>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_denuncias' %}">Ver todas</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>#</th><th>Categoría</th><th>Estado</th><th>Creada</th></tr>
+            </thead>
+            <tbody>
+              {% for d in ultimas_denuncias %}
+                <tr>
+                  <td><a href="{% url 'admin_denuncia_detalle' d.id %}">#{{ d.id }}</a></td>
+                  <td class="text-truncate" style="max-width:180px;">{{ d.categoria.nombre }}</td>
+                  <td>
+                    <span class="badge bg-secondary-subtle text-secondary border">{{ d.estado|title }}</span>
+                  </td>
+                  <td>{{ d.creada_en|date:"d/m/Y H:i" }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-4">Sin registros</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
   </div>
 
+  {# -- Deja tus scripts tal cual -- #}
+  {{ ingresos_mes|json_script:"ingresos-data" }}
+  {{ pagos_estado|json_script:"estados-data" }}
+  {{ serie_intentos|json_script:"serie-intentos-data" }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 
-{# Chart.js: si tu base.html ya lo incluye, puedes quitar esta línea #}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  (function () {
-    const ingresos = {{ ingresos_mes|safe }};   // [{mes:"YYYY-MM", total: 123.0}, ...]
-    const estados  = {{ pagos_estado|safe }};   // {"success": X, "failed": Y, "pending": Z}
+  <script>
+    window.addEventListener('DOMContentLoaded', function () {
+      const getJSON = (id, fallback) => {
+        const el = document.getElementById(id);
+        if (!el) return fallback;
+        try { return JSON.parse(el.textContent); } catch { return fallback; }
+      };
 
-    // Ingresos por mes (barra)
-    const labels = ingresos.map(i => i.mes);
-    const data   = ingresos.map(i => i.total);
-    const ctx1 = document.getElementById('chartIngresos').getContext('2d');
-    new Chart(ctx1, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{ label: 'Q Ingresos', data: data }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
+      const ingresos = getJSON('ingresos-data', []);
+      const estados  = getJSON('estados-data',  {success:0,failed:0,pending:0});
+      const serie    = getJSON('serie-intentos-data', []);
+
+      // Ingresos por mes
+      const c1 = document.getElementById('chartIngresos');
+      if (c1 && ingresos.length) {
+        const labels = ingresos.map(i => i.mes);
+        const data   = ingresos.map(i => i.total);
+        new Chart(c1.getContext('2d'), {
+          type: 'bar',
+          data: { labels, datasets: [{ label: 'Q Ingresos', data }] },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      }
+
+      // Pagos por estado
+      const c2 = document.getElementById('chartEstados');
+      if (c2) {
+        const estLabels = ['success','failed','pending'];
+        const estData = estLabels.map(k => estados[k] || 0);
+        new Chart(c2.getContext('2d'), {
+          type: 'doughnut',
+          data: { labels: estLabels, datasets: [{ data: estData }] },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            plugins: { legend: { position: 'bottom' } }
+          }
+        });
+      }
+
+      // Intentos vs Éxitos
+      const c3 = document.getElementById('chartIntentos');
+      if (c3 && serie.length) {
+        const labels3 = serie.map(s => s.dia);
+        const intents = serie.map(s => s.intentos);
+        const succ    = serie.map(s => s.success);
+        new Chart(c3.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: labels3,
+            datasets: [
+              { label:'Intentos', data:intents, tension: 0.25 },
+              { label:'Éxitos',   data:succ,    tension: 0.25 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            plugins: { legend: { position:'bottom' } },
+            scales: { y: { beginAtZero: true } }
+          }
+        });
       }
     });
+  </script>
 
-    // Pagos por estado (doughnut)
-    const ctx2 = document.getElementById('chartEstados').getContext('2d');
-    const estLabels = ['success','failed','pending'];
-    const estData = estLabels.map(k => estados[k] || 0);
-    new Chart(ctx2, {
-      type: 'doughnut',
-      data: {
-        labels: estLabels,
-        datasets: [{ data: estData }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } }
-      }
-    });
-  })();
-</script>
 {% endblock %}

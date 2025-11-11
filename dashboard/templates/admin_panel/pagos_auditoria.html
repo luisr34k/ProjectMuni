@@ -1,0 +1,90 @@
+{% extends "admin_panel/base_admin.html" %}
+{% block admin_title %}Auditoría de pagos{% endblock %}
+{% block content %}
+
+<h4>Auditoría de pagos</h4>
+
+<form class="row g-2 mb-3" method="get">
+  <div class="col-auto">
+    <label class="form-label">Desde</label>
+    <input type="date" class="form-control" name="f_ini" value="{{ f_ini }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Hasta</label>
+    <input type="date" class="form-control" name="f_fin" value="{{ f_fin }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Estado</label>
+    <select name="estado" class="form-select">
+      <option value="">Todos</option>
+      {% for e in ESTADOS_TX %}
+        <option value="{{ e }}" {% if estado == e %}selected{% endif %}>{{ e }}</option>
+      {% endfor %}
+    </select>
+
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Búsqueda</label>
+    <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="orden_id, email, catastral, id cuenta">
+  </div>
+  <div class="col-auto align-self-end">
+    <button class="btn btn-primary">Filtrar</button>
+  </div>
+</form>
+
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>Creada</th>
+        <th>Actualizada</th>
+        <th>Latencia (s)</th>
+        <th>Estado</th>
+        <th>Orden</th>
+        <th>Cuenta</th>
+        <th>Usuario</th>
+        <th>Motivo fallo</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in filas %}
+      <tr>
+        <td>{{ r.tx.creado_en|date:"d/m/Y H:i:s" }}</td>
+        <td>{{ r.tx.actualizado_en|date:"d/m/Y H:i:s" }}</td>
+        <td>{{ r.lat|default:"—" }}</td>
+        <td>
+          {% if r.tx.estado == "success" %}<span class="badge bg-success">success</span>
+          {% elif r.tx.estado == "failed" %}<span class="badge bg-danger">failed</span>
+          {% elif r.tx.estado == "pending" %}<span class="badge bg-secondary">pending</span>
+          {% else %}<span class="badge bg-dark">{{ r.tx.estado }}</span>{% endif %}
+        </td>
+        <td>{{ r.tx.orden_id }}</td>
+        <td>
+          {% if r.tx.pago and r.tx.pago.cuenta %}
+            {{ r.tx.pago.cuenta.codigo_catastral|default:r.tx.pago.cuenta.id }}
+          {% else %}—{% endif %}
+        </td>
+        <td>{% if r.tx.pago and r.tx.pago.cuenta and r.tx.pago.cuenta.usuario %}{{ r.tx.pago.cuenta.usuario.correo }}{% else %}—{% endif %}</td>
+        <td class="small text-muted">{{ r.fail_reason|default:"" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8" class="text-center text-muted py-4">Sin registros</td></tr>
+    {% endfor %}
+  </tbody>
+
+  </table>
+</div>
+
+<nav>
+  <ul class="pagination">
+    {% if page.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}&f_ini={{ f_ini }}&f_fin={{ f_fin }}&estado={{ estado }}&q={{ q }}">«</a></li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">Página {{ page.number }} de {{ page.paginator.num_pages }}</span></li>
+    {% if page.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}&f_ini={{ f_ini }}&f_fin={{ f_fin }}&estado={{ estado }}&q={{ q }}">»</a></li>
+    {% endif %}
+  </ul>
+</nav>
+
+{% endblock %}
