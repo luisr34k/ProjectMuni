@@ -64,6 +64,7 @@ urlpatterns = [
     path('admin-panel/cartera/', pay_views.admin_cartera, name='admin_cartera'),
     path('admin-panel/cartera/enviar/', pay_views.admin_cartera_enviar, name='admin_cartera_enviar'),
     path("admin-panel/pagos/auditoria/", admin_panel.admin_pagos_auditoria, name="admin_pagos_auditoria"),
+    path("admin-panel/denuncias/analitica/", admin_panel.admin_denuncias_analitica, name="admin_denuncias_analitica"),
 
     
     # dashboard/urls.py

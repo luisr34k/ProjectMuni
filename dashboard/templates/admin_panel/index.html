@@ -8,13 +8,15 @@
   <!-- KPIs -->
   <div class="row g-4">
     <div class="col-12 col-md-3">
-      <div class="card h-100 shadow-sm">
-        <div class="card-body py-3">
-          <div class="text-muted small">Denuncias</div>
-          <div class="display-6 fw-semibold">{{ tot_denuncias }}</div>
-          <div class="text-muted">Total registradas</div>
+      <a href="{% url 'admin_denuncias_analitica' %}" class="text-decoration-none text-reset">
+        <div class="card h-100 hover-shadow-sm">
+          <div class="card-body">
+            <div class="text-muted small">Denuncias</div>
+            <div class="display-6 fw-semibold">{{ tot_denuncias }}</div>
+            <div class="text-muted">Ver analítica de atención</div>
+          </div>
         </div>
-      </div>
+      </a>
     </div>
 
     <div class="col-12 col-md-3">

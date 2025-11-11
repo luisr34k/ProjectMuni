@@ -1,7 +1,7 @@
 # dashboard/views/admin_panel.py
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib import admin
-from dashboard.models import CuentaServicio, Tarifa, Periodo, Boleta, Pago, AplicacionPago, TransaccionOnline
+from dashboard.models import CuentaServicio, Tarifa, Periodo, Boleta, Pago, AplicacionPago, TransaccionOnline, BitacoraDenuncia
 from dashboard.utils.email_utils import notify_permiso_estado
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.paginator import Paginator
@@ -24,7 +24,17 @@ from django.db.models.functions import Coalesce
 from django.utils.timezone import now
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Sum, Q, Value, CharField, OuterRef, Subquery
-
+from django.db.models import (
+    Avg, Count, Case, When, IntegerField, DurationField, ExpressionWrapper,
+    OuterRef, Subquery, F, Value, DateTimeField
+)
+from django.db.models.functions import Coalesce
+from django.utils.timezone import now
+from django.db import connection
+from django.db.models import (
+    Sum, Value, CharField, OuterRef, Subquery, IntegerField, FloatField,
+    Case, When, F
+)
 
 ESTADOS = ["enviada", "en revisión", "en proceso", "resuelta", "rechazada"]
 ESTADOS_TX = ["success", "failed", "pending", "ignored"]
@@ -205,6 +215,29 @@ def index(request):
     }
     return render(request, "admin_panel/index.html", ctx)
 
+
+def seconds_between(end_expr, start_expr):
+    """
+    Devuelve una Expression (FloatField) con la diferencia en segundos entre dos DateTime.
+    Soporta sqlite / mysql / postgres.
+    """
+    vendor = connection.vendor
+    if vendor == "sqlite":
+        # (julianday(end) - julianday(start)) * 86400
+        from django.db.models import ExpressionWrapper, Func
+        return ExpressionWrapper(
+            (Func(end_expr, function='julianday') - Func(start_expr, function='julianday')) * Value(86400.0),
+            output_field=FloatField(),
+        )
+    elif vendor == "mysql":
+        # TIMESTAMPDIFF(SECOND, start, end)
+        from django.db.models.expressions import Func
+        return Func(start_expr, end_expr, function='TIMESTAMPDIFF', template="%(function)s(SECOND, %(expressions)s)", output_field=FloatField())
+    else:
+        # postgres: EXTRACT(EPOCH FROM end - start)
+        from django.db.models import ExpressionWrapper, DurationField
+        from django.db.models.functions import Extract
+        return Extract(ExpressionWrapper(end_expr - start_expr, output_field=DurationField()), 'epoch')
 
 @user_passes_test(es_admin, login_url='login')
 def denuncias(request):
@@ -531,3 +564,153 @@ def admin_pagos_auditoria(request):
     })
     
     
+
+@staff_member_required
+def admin_denuncias_analitica(request):
+    """
+    Analítica de tiempos de atención en denuncias (compat. SQLite/MySQL/Postgres):
+    - Tiempo a primera revisión (segundos)
+    - Tiempo a resolución (segundos)
+    - Backlog por antigüedad (segundos)
+    - Desglose por categoría
+    Filtros: rango por creada_en (desde/hasta) y estado opcional.
+    """
+    # --------- Filtros ----------
+    desde_str = (request.GET.get("desde") or "").strip()
+    hasta_str = (request.GET.get("hasta") or "").strip()
+    estado_f  = (request.GET.get("estado") or "").strip()
+
+    base_qs = Denuncia.objects.select_related("categoria").all()
+
+    if desde_str:
+        from django.utils.dateparse import parse_datetime, parse_date
+        d = parse_datetime(desde_str) or parse_date(desde_str)
+        if d:
+            # si es date naive, filtra por __date
+            if hasattr(d, "hour"):
+                base_qs = base_qs.filter(creada_en__gte=d)
+            else:
+                base_qs = base_qs.filter(creada_en__date__gte=d)
+
+    if hasta_str:
+        from django.utils.dateparse import parse_datetime, parse_date
+        h = parse_datetime(hasta_str) or parse_date(hasta_str)
+        if h:
+            if hasattr(h, "hour"):
+                base_qs = base_qs.filter(creada_en__lte=h)
+            else:
+                base_qs = base_qs.filter(creada_en__date__lte=h)
+
+    if estado_f:
+        base_qs = base_qs.filter(estado=estado_f)
+
+    # --------- Subqueries de hitos ----------
+    first_review_sq = (
+        BitacoraDenuncia.objects
+        .filter(denuncia_id=OuterRef("pk"), estado_nuevo="en revisión")
+        .order_by("fecha").values("fecha")[:1]
+    )
+    first_resuelta_sq = (
+        BitacoraDenuncia.objects
+        .filter(denuncia_id=OuterRef("pk"), estado_nuevo="resuelta")
+        .order_by("fecha").values("fecha")[:1]
+    )
+
+    # --------- Anotaciones de timestamps y SEGUNDOS (compatibles) ----------
+    qs = base_qs.annotate(
+        ts_review = Subquery(first_review_sq, output_field=DateTimeField()),
+        ts_res    = Coalesce(F("finalizada_en"),
+                             Subquery(first_resuelta_sq, output_field=DateTimeField())),
+        now_ts    = Value(now(), output_field=DateTimeField()),
+    ).annotate(
+        # segundos a primera revisión / resolución / antigüedad actual
+        t_to_review_s = seconds_between(F("ts_review"), F("creada_en")),
+        t_to_res_s    = seconds_between(F("ts_res"),    F("creada_en")),
+        age_seconds   = seconds_between(F("now_ts"),    F("creada_en")),
+    )
+
+    # --------- KPIs por estado ----------
+    kpi_total      = qs.count()
+    kpi_enviada    = qs.filter(estado="enviada").count()
+    kpi_rev        = qs.filter(estado="en revisión").count()
+    kpi_proceso    = qs.filter(estado="en proceso").count()
+    kpi_resueltas  = qs.filter(estado="resuelta").count()
+    kpi_rechazadas = qs.filter(estado="rechazada").count()
+
+    # --------- Promedios (en segundos) ----------
+    def avg_seconds(qs_, field):
+        v = qs_.exclude(**{f"{field}__isnull": True}).aggregate(v=Avg(field))["v"]
+        try:
+            return round(float(v), 2) if v is not None else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
+    avg_to_review = avg_seconds(qs, "t_to_review_s")
+    avg_to_res    = avg_seconds(qs, "t_to_res_s")
+
+    # --------- Buckets de antigüedad (en segundos) ----------
+    two_d    = 2*24*3600
+    seven_d  = 7*24*3600
+    thirty_d = 30*24*3600
+
+    qs_backlog = qs.exclude(estado__in=["resuelta", "rechazada"])
+
+    buckets = qs_backlog.aggregate(
+        b_0_2 = Count(Case(When(age_seconds__lte=two_d, then=1),
+                           output_field=IntegerField())),
+        b_3_7 = Count(Case(When(age_seconds__gt=two_d, age_seconds__lte=seven_d, then=1),
+                           output_field=IntegerField())),
+        b_8_30= Count(Case(When(age_seconds__gt=seven_d, age_seconds__lte=thirty_d, then=1),
+                           output_field=IntegerField())),
+        b_30p = Count(Case(When(age_seconds__gt=thirty_d, then=1),
+                           output_field=IntegerField())),
+    )
+
+    # --------- Por categoría ----------
+    por_categoria = (
+        qs.values("categoria__nombre")
+          .annotate(
+              total=Count("id"),
+              resueltas=Sum(Case(When(estado="resuelta", then=1),
+                                 default=0, output_field=IntegerField())),
+              avg_res_s=Avg("t_to_res_s"),
+          ).order_by("-total")
+    )
+
+    tabla_categorias = []
+    for row in por_categoria:
+        total = row["total"] or 0
+        res   = row["resueltas"] or 0
+        avg_s = float(row["avg_res_s"]) if row["avg_res_s"] is not None else 0.0
+        tasa  = round((res*100.0/total), 2) if total else 0.0
+        tabla_categorias.append({
+            "categoria": row["categoria__nombre"] or "—",
+            "total": total,
+            "resueltas": res,
+            "tasa_resuelta": tasa,
+            "avg_res_seg": round(avg_s, 2),
+        })
+
+    ctx = {
+        "kpi_total": kpi_total,
+        "kpi_enviada": kpi_enviada,
+        "kpi_rev": kpi_rev,
+        "kpi_proceso": kpi_proceso,
+        "kpi_resueltas": kpi_resueltas,
+        "kpi_rechazadas": kpi_rechazadas,
+
+        "avg_to_review": avg_to_review,
+        "avg_to_res": avg_to_res,
+
+        "bucket_0_2": buckets.get("b_0_2", 0),
+        "bucket_3_7": buckets.get("b_3_7", 0),
+        "bucket_8_30": buckets.get("b_8_30", 0),
+        "bucket_30p": buckets.get("b_30p", 0),
+
+        "tabla_categorias": tabla_categorias,
+        "desde": desde_str,
+        "hasta": hasta_str,
+        "estado_sel": estado_f,
+        "ESTADOS": ESTADOS,
+    }
+    return render(request, "admin_panel/denuncias_analitica.html", ctx)

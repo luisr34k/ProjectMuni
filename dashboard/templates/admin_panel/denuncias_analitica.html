@@ -1,0 +1,143 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}Analítica de denuncias{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0">Analítica de denuncias</h4>
+  <a class="btn btn-outline-secondary" href="{% url 'admin_denuncias' %}">Ver listado</a>
+</div>
+
+<form class="card p-3 mb-4" method="get">
+  <div class="row g-2">
+    <div class="col-6 col-md-2">
+      <label class="form-label">Desde</label>
+      <input type="date" name="desde" class="form-control" value="{{ desde }}">
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label">Hasta</label>
+      <input type="date" name="hasta" class="form-control" value="{{ hasta }}">
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label">Estado</label>
+      <select name="estado" class="form-select">
+        <option value="">Todos</option>
+        {% for e in ESTADOS %}
+          <option value="{{ e }}" {% if estado_sel == e %}selected{% endif %}>{{ e }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2 d-flex align-items-end">
+      <button class="btn btn-primary w-100">Filtrar</button>
+    </div>
+  </div>
+</form>
+
+<!-- KPIs -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-2">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Total</div>
+      <div class="h3 mb-0">{{ kpi_total }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Enviadas</div>
+      <div class="h3 mb-0">{{ kpi_enviada }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">En revisión</div>
+      <div class="h3 mb-0">{{ kpi_rev }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">En proceso</div>
+      <div class="h3 mb-0">{{ kpi_proceso }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Resueltas</div>
+      <div class="h3 mb-0">{{ kpi_resueltas }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Rechazadas</div>
+      <div class="h3 mb-0">{{ kpi_rechazadas }}</div>
+    </div></div>
+  </div>
+</div>
+
+<!-- Tiempos -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Tiempo a primera revisión (promedio)</div>
+      <div class="h3 mb-0">{{ avg_to_review }} s</div>
+      <div class="text-muted">Desde creada hasta primer “en revisión”.</div>
+    </div></div>
+  </div>
+  <div class="col-12 col-md-6">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Tiempo a resolución (promedio)</div>
+      <div class="h3 mb-0">{{ avg_to_res }} s</div>
+      <div class="text-muted">Desde creada hasta “resuelta”.</div>
+    </div></div>
+  </div>
+</div>
+
+<!-- Backlog por antigüedad -->
+<div class="card mb-4">
+  <div class="card-header"><strong>Backlog por antigüedad</strong></div>
+  <div class="card-body">
+    <div class="row text-center">
+      <div class="col-6 col-md-3"><div class="fw-semibold fs-4">{{ bucket_0_2 }}</div><div class="text-muted small">0–2 días</div></div>
+      <div class="col-6 col-md-3"><div class="fw-semibold fs-4">{{ bucket_3_7 }}</div><div class="text-muted small">3–7 días</div></div>
+      <div class="col-6 col-md-3"><div class="fw-semibold fs-4">{{ bucket_8_30 }}</div><div class="text-muted small">8–30 días</div></div>
+      <div class="col-6 col-md-3"><div class="fw-semibold fs-4">{{ bucket_30p }}</div><div class="text-muted small">>30 días</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Por categoría -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>Desglose por categoría</strong>
+    <small class="text-muted">Promedio a resolución en segundos</small>
+  </div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+      <tr>
+        <th>Categoría</th>
+        <th>Total</th>
+        <th>Resueltas</th>
+        <th>% Resueltas</th>
+        <th>Prom. resolución (s)</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for r in tabla_categorias %}
+        <tr>
+          <td>{{ r.categoria }}</td>
+          <td>{{ r.total }}</td>
+          <td>{{ r.resueltas }}</td>
+          <td>{{ r.tasa_resuelta }}%</td>
+          <td>{{ r.avg_res_seg }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Sin datos</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
