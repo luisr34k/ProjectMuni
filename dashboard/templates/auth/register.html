@@ -113,6 +113,17 @@
                   </div>
               </div>
 
+              <div class="mb-6 form-check">
+                  {{ form.acepto_terminos }}
+                  <label class="form-check-label" for="id_acepto_terminos">
+                      Acepto los 
+                      <a href="{% url 'terminos_condiciones' %}" target="_blank">Términos y Condiciones</a>
+                      y la
+                      <a href="{% url 'politica_privacidad' %}" target="_blank">Política de Privacidad</a>.
+                  </label>
+              </div>
+
+
               <button class="btn btn-primary d-grid w-100" type="submit">Registrarse</button>
           </form>
 

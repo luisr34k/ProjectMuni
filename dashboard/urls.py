@@ -13,6 +13,9 @@ urlpatterns = [
     path('logout/', auth.logout_view, name='logout'),
     path('register/', auth.register, name='register'),
     path('activar/<uuid:token>/', auth.activar_cuenta, name='activar_cuenta'),
+    path('terminos-y-condiciones/', auth.terminos_view, name='terminos_condiciones'),
+    path('politica-privacidad/', auth.privacidad_view, name='politica_privacidad'),
+
 
     # Home usuario
     path('index/', user.index, name='index'),

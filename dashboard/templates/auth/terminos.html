@@ -1,0 +1,326 @@
+{% load static %}
+<!doctype html>
+<html
+  lang="es"
+  class="light-style layout-wide customizer-hide"
+  dir="ltr"
+  data-theme="theme-default"
+  data-assets-path="{% get_static_prefix %}"
+  data-template="vertical-menu-template-free"
+  data-style="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+
+    <title>Términos y Condiciones - Mi MuniSanLuis</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'img/favicon/favicon.ico' %}" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
+      rel="stylesheet" />
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="{% static 'vendor/fonts/boxicons.css' %}" />
+
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="{% static 'vendor/css/core.css' %}" class="template-customizer-core-css" />
+    <link rel="stylesheet" href="{% static 'vendor/css/theme-default.css' %}" class="template-customizer-theme-css" />
+    <link rel="stylesheet" href="{% static 'css/demo.css' %}" />
+
+    <!-- Vendors CSS -->
+    <link rel="stylesheet" href="{% static 'vendor/libs/perfect-scrollbar/perfect-scrollbar.css' %}" />
+
+    <!-- Page CSS -->
+    <link rel="stylesheet" href="{% static 'vendor/css/pages/page-auth.css' %}" />
+
+    <!-- Helpers -->
+    <script src="{% static 'vendor/js/helpers.js'%}"></script>
+    <script src="{% static 'js/config.js' %}"></script>
+  </head>
+
+  <body>
+    <div class="container-xxl py-6">
+      <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h3 class="mb-0">Mi MuniSanLuis</h3>
+              <small class="text-muted">Términos y Condiciones de uso del sistema web</small>
+            </div>
+            <a href="{% url 'index' %}" class="btn btn-outline-secondary d-none d-md-inline-flex">
+              <i class="bx bx-left-arrow-alt me-1"></i> Volver al inicio
+            </a>
+          </div>
+
+          <div class="row g-4">
+            <!-- Sidebar índice -->
+            <div class="col-12 col-lg-3">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h5 class="mb-0">Contenido</h5>
+                </div>
+                <div class="list-group list-group-flush small">
+                  <a href="#aceptacion" class="list-group-item list-group-item-action">1. Aceptación</a>
+                  <a href="#objeto" class="list-group-item list-group-item-action">2. Objeto del sistema</a>
+                  <a href="#cuenta" class="list-group-item list-group-item-action">3. Cuenta de usuario</a>
+                  <a href="#uso" class="list-group-item list-group-item-action">4. Uso adecuado de la plataforma</a>
+                  <a href="#denuncias" class="list-group-item list-group-item-action">5. Denuncias ciudadanas</a>
+                  <a href="#permisos" class="list-group-item list-group-item-action">6. Permisos de construcción</a>
+                  <a href="#pagos" class="list-group-item list-group-item-action">7. Pagos en línea</a>
+                  <a href="#responsabilidad" class="list-group-item list-group-item-action">8. Limitación de responsabilidad</a>
+                  <a href="#suspension" class="list-group-item list-group-item-action">9. Suspensión de cuentas</a>
+                  <a href="#propiedad" class="list-group-item list-group-item-action">10. Propiedad intelectual</a>
+                  <a href="#modificaciones" class="list-group-item list-group-item-action">11. Modificaciones a los términos</a>
+                  <a href="#ley" class="list-group-item list-group-item-action">12. Ley aplicable y jurisdicción</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contenido principal -->
+            <div class="col-12 col-lg-9">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <div>
+                    <h4 class="mb-0">Términos y Condiciones de Uso</h4>
+                    <small class="text-muted">
+                      Condiciones para utilizar el sistema web municipal
+                    </small>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <section id="aceptacion" class="mb-4">
+                    <h5>1. Aceptación de los términos</h5>
+                    <p class="mb-0">
+                      Al registrarse, acceder o utilizar el sistema web de la Municipalidad de
+                      San Luis Jilotepeque (“Mi MuniSanLuis”), la persona usuaria declara que ha
+                      leído, comprende y acepta estos Términos y Condiciones, así como la
+                      Política de Privacidad de la plataforma. Si no está de acuerdo con alguno
+                      de estos términos, debe abstenerse de utilizar el sistema.
+                    </p>
+                  </section>
+
+                  <section id="objeto" class="mb-4">
+                    <h5>2. Objeto del sistema</h5>
+                    <p class="mb-0">
+                      El sistema tiene como finalidad facilitar a la ciudadanía la realización de
+                      trámites y servicios municipales específicos, tales como la presentación de
+                      denuncias ciudadanas, la solicitud de permisos de construcción y el pago en
+                      línea de servicios como el tren de aseo, entre otros que la Municipalidad
+                      pueda habilitar en el futuro.
+                    </p>
+                  </section>
+
+                  <section id="cuenta" class="mb-4">
+                    <h5>3. Cuenta de usuario y credenciales</h5>
+                    <p>Para utilizar ciertas funcionalidades del sistema es necesario registrarse y crear una cuenta.</p>
+                    <ul>
+                      <li>
+                        La persona usuaria se compromete a proporcionar información verdadera,
+                        exacta y actualizada al momento del registro.
+                      </li>
+                      <li>
+                        Es responsabilidad exclusiva de la persona usuaria resguardar la
+                        confidencialidad de su contraseña y de cualquier actividad que se realice
+                        desde su cuenta.
+                      </li>
+                      <li>
+                        En caso de sospecha de acceso no autorizado, la persona usuaria deberá
+                        cambiar su contraseña y notificar a la Municipalidad por los canales
+                        oficiales.
+                      </li>
+                    </ul>
+                    <p class="mb-0">
+                      La Municipalidad podrá, en ciertos casos, solicitar información adicional o
+                      verificar datos con el fin de prevenir fraudes o usos indebidos del sistema.
+                    </p>
+                  </section>
+
+                  <section id="uso" class="mb-4">
+                    <h5>4. Uso adecuado de la plataforma</h5>
+                    <p>La persona usuaria se compromete a:</p>
+                    <ul>
+                      <li>Utilizar el sistema de forma lícita y respetuosa, conforme a su finalidad pública.</li>
+                      <li>
+                        No intentar vulnerar la seguridad, integridad o disponibilidad del sistema,
+                        ni utilizarlo para distribuir software malicioso o realizar ataques
+                        informáticos.
+                      </li>
+                      <li>
+                        No utilizar la plataforma para difamar, amenazar, acosar o perjudicar a
+                        otras personas, funcionarios municipales o terceros.
+                      </li>
+                      <li>
+                        No suplantar la identidad de otras personas ni registrar datos falsos en
+                        los formularios.
+                      </li>
+                    </ul>
+                    <p class="mb-0">
+                      La Municipalidad puede registrar y auditar el uso del sistema para detectar
+                      comportamientos irregulares y tomar las medidas que correspondan.
+                    </p>
+                  </section>
+
+                  <section id="denuncias" class="mb-4">
+                    <h5>5. Denuncias ciudadanas</h5>
+                    <p>Al presentar una denuncia a través de la plataforma, la persona usuaria declara que:</p>
+                    <ul>
+                      <li>
+                        La información proporcionada es, a su leal saber y entender, veraz y
+                        relacionada con hechos que considera relevantes para la autoridad
+                        municipal.
+                      </li>
+                      <li>
+                        Comprende que la denuncia puede generar actuaciones administrativas
+                        internas, pero no implica automáticamente la imposición de sanciones ni
+                        la apertura de procesos judiciales.
+                      </li>
+                      <li>
+                        En caso de denuncias con datos personales de terceros, procurará no
+                        incluir información excesiva o ajena al objeto de la denuncia.
+                      </li>
+                    </ul>
+                    <p class="mb-0">
+                      La Municipalidad se reserva el derecho de dar prioridad a ciertas denuncias
+                      según criterios de urgencia, impacto comunitario, disponibilidad de
+                      recursos u otros factores técnicos y administrativos.
+                    </p>
+                  </section>
+
+                  <section id="permisos" class="mb-4">
+                    <h5>6. Permisos de construcción y otros trámites</h5>
+                    <p>
+                      Las solicitudes de permisos de construcción u otros trámites administrativos
+                      que se presenten a través del sistema estarán sujetas a la revisión técnica
+                      y legal correspondiente por parte de las dependencias municipales
+                      competentes.
+                    </p>
+                    <p class="mb-0">
+                      La presentación de una solicitud en línea no garantiza su aprobación. La
+                      Municipalidad podrá requerir documentación adicional, realizar inspecciones
+                      o aplicar los criterios establecidos en la normativa vigente. El resultado
+                      del trámite será comunicado mediante el sistema y/o los canales oficiales de
+                      contacto proporcionados por la persona usuaria.
+                    </p>
+                  </section>
+
+                  <section id="pagos" class="mb-4">
+                    <h5>7. Pagos en línea y comprobantes</h5>
+                    <p>Cuando el sistema permita realizar pagos en línea, se aplican las siguientes condiciones:</p>
+                    <ul>
+                      <li>
+                        Los montos, recargos y fechas límite se calculan según la normativa
+                        municipal vigente y la información registrada en el sistema de cobros.
+                      </li>
+                      <li>
+                        El procesamiento de pagos con tarjeta se realiza a través de una
+                        pasarela de pago externa autorizada. El sistema no almacena los datos
+                        completos de las tarjetas.
+                      </li>
+                      <li>
+                        Un pago se considerará efectivamente realizado cuando la pasarela de pago
+                        confirme la transacción como “exitosa” y se genere el comprobante
+                        correspondiente.
+                      </li>
+                      <li>
+                        En caso de error técnico o fallo de la pasarela, la Municipalidad podrá
+                        revisar las transacciones registradas y, si corresponde, apoyar en la
+                        gestión de aclaraciones. No obstante, la relación directa con la entidad
+                        financiera se rige por los términos de dicha entidad.
+                      </li>
+                    </ul>
+                    <p class="mb-0">
+                      La persona usuaria es responsable de verificar la información del pago
+                      (período, monto, cuenta de servicio) antes de confirmar la transacción.
+                    </p>
+                  </section>
+
+                  <section id="responsabilidad" class="mb-4">
+                    <h5>8. Limitación de responsabilidad</h5>
+                    <p>
+                      La Municipalidad procurará que el sistema se encuentre disponible y
+                      funcione de manera adecuada; sin embargo, no puede garantizar ausencia
+                      total de errores, interrupciones de servicio, fallas de comunicación,
+                      indisponibilidad temporal o pérdida de datos por causas técnicas, fallas
+                      eléctricas, problemas en la red de internet u otros factores externos.
+                    </p>
+                    <p class="mb-0">
+                      En la medida permitida por la normativa aplicable, la Municipalidad no será
+                      responsable por daños indirectos, lucros cesantes o perjuicios derivados del
+                      uso o imposibilidad de uso de la plataforma. Ello sin perjuicio de las
+                      responsabilidades que puedan derivarse de la legislación guatemalteca
+                      vigente en materia de función pública, transparencia y atención ciudadana.
+                    </p>
+                  </section>
+
+                  <section id="suspension" class="mb-4">
+                    <h5>9. Suspensión o cancelación de cuentas</h5>
+                    <p class="mb-0">
+                      La Municipalidad podrá suspender temporalmente o cancelar en forma
+                      definitiva el acceso de una cuenta de usuario cuando detecte uso fraudulento,
+                      actividades que vulneren la seguridad del sistema, incumplimiento grave de
+                      estos términos o disposiciones legales aplicables, o cuando así lo
+                      determine por motivos de administración interna del sistema. En la medida de
+                      lo posible, se intentará informar al usuario sobre las razones de la medida.
+                    </p>
+                  </section>
+
+                  <section id="propiedad" class="mb-4">
+                    <h5>10. Propiedad intelectual</h5>
+                    <p class="mb-0">
+                      El diseño del sistema, la organización de los contenidos, logotipos,
+                      gráficos, código fuente y demás elementos asociados a “Mi MuniSanLuis” son
+                      de titularidad de la Municipalidad de San Luis Jilotepeque o de terceros que
+                      han autorizado su uso. Queda prohibida su reproducción, modificación o
+                      distribución sin autorización expresa, salvo los casos permitidos por la
+                      normativa aplicable.
+                    </p>
+                  </section>
+
+                  <section id="modificaciones" class="mb-4">
+                    <h5>11. Modificaciones a los Términos y Condiciones</h5>
+                    <p class="mb-0">
+                      La Municipalidad podrá actualizar estos Términos y Condiciones cuando se
+                      introduzcan cambios en el sistema, en la normativa aplicable o en los
+                      procedimientos internos. La versión vigente estará disponible en esta
+                      página. El uso continuado del sistema después de la publicación de cambios
+                      implica la aceptación de los nuevos términos.
+                    </p>
+                  </section>
+
+                  <section id="ley">
+                    <h5>12. Ley aplicable y jurisdicción</h5>
+                    <p class="mb-0">
+                      Estos Términos y Condiciones se rigen por las leyes de la República de
+                      Guatemala. Cualquier controversia relacionada con el uso de la plataforma
+                      deberá ser resuelta, en primera instancia, a través de los mecanismos de
+                      atención y reclamo de la Municipalidad. Sin perjuicio de ello, las partes
+                      podrán acudir a las instancias jurisdiccionales competentes en Guatemala
+                      cuando corresponda.
+                    </p>
+                  </section>
+                </div>
+              </div>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'vendor/libs/jquery/jquery.js' %}"></script>
+    <script src="{% static 'vendor/libs/popper/popper.js' %}"></script>
+    <script src="{% static 'vendor/js/bootstrap.js' %}"></script>
+    <script src="{% static 'vendor/libs/perfect-scrollbar/perfect-scrollbar.js' %}"></script>
+    <script src="{% static 'vendor/js/menu.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+  </body>
+</html>

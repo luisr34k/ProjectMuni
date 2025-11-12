@@ -1,0 +1,292 @@
+{% load static %}
+<!doctype html>
+<html
+  lang="es"
+  class="light-style layout-wide customizer-hide"
+  dir="ltr"
+  data-theme="theme-default"
+  data-assets-path="{% get_static_prefix %}"
+  data-template="vertical-menu-template-free"
+  data-style="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+
+    <title>Política de Privacidad - Mi MuniSanLuis</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'img/favicon/favicon.ico' %}" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
+      rel="stylesheet" />
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="{% static 'vendor/fonts/boxicons.css' %}" />
+
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="{% static 'vendor/css/core.css' %}" class="template-customizer-core-css" />
+    <link rel="stylesheet" href="{% static 'vendor/css/theme-default.css' %}" class="template-customizer-theme-css" />
+    <link rel="stylesheet" href="{% static 'css/demo.css' %}" />
+
+    <!-- Vendors CSS -->
+    <link rel="stylesheet" href="{% static 'vendor/libs/perfect-scrollbar/perfect-scrollbar.css' %}" />
+
+    <!-- Page CSS -->
+    <link rel="stylesheet" href="{% static 'vendor/css/pages/page-auth.css' %}" />
+
+    <!-- Helpers -->
+    <script src="{% static 'vendor/js/helpers.js'%}"></script>
+    <script src="{% static 'js/config.js' %}"></script>
+  </head>
+
+  <body>
+    <div class="container-xxl py-6">
+      <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h3 class="mb-0">Mi MuniSanLuis</h3>
+              <small class="text-muted">Política de privacidad del sistema web municipal</small>
+            </div>
+            <a href="{% url 'index' %}" class="btn btn-outline-secondary d-none d-md-inline-flex">
+              <i class="bx bx-left-arrow-alt me-1"></i> Volver al inicio
+            </a>
+          </div>
+
+          <div class="row g-4">
+            <!-- Sidebar índice -->
+            <div class="col-12 col-lg-3">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h5 class="mb-0">Contenido</h5>
+                </div>
+                <div class="list-group list-group-flush small">
+                  <a href="#intro" class="list-group-item list-group-item-action">1. Alcance</a>
+                  <a href="#datos" class="list-group-item list-group-item-action">2. Datos que se recopilan</a>
+                  <a href="#finalidad" class="list-group-item list-group-item-action">3. Finalidad del tratamiento</a>
+                  <a href="#base" class="list-group-item list-group-item-action">4. Base legal</a>
+                  <a href="#conservacion" class="list-group-item list-group-item-action">5. Plazos de conservación</a>
+                  <a href="#encargados" class="list-group-item list-group-item-action">6. Encargados y terceros</a>
+                  <a href="#derechos" class="list-group-item list-group-item-action">7. Derechos de la persona usuaria</a>
+                  <a href="#seguridad" class="list-group-item list-group-item-action">8. Seguridad de la información</a>
+                  <a href="#cookies" class="list-group-item list-group-item-action">9. Cookies y registros</a>
+                  <a href="#cambios" class="list-group-item list-group-item-action">10. Actualizaciones</a>
+                  <a href="#contacto" class="list-group-item list-group-item-action">11. Contacto</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contenido principal -->
+            <div class="col-12 col-lg-9">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <div>
+                    <h4 class="mb-0">Política de Privacidad</h4>
+                    <small class="text-muted">
+                      Tratamiento de datos personales en el sistema web municipal
+                    </small>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <section id="intro" class="mb-4">
+                    <h5>1. Alcance</h5>
+                    <p class="mb-0">
+                      La presente Política de Privacidad describe cómo la Municipalidad de San Luis
+                      Jilotepeque recopila, utiliza, conserva y protege los datos personales que se
+                      ingresan a través del sistema web de denuncias ciudadanas, permisos de
+                      construcción y pagos del servicio de tren de aseo u otros servicios municipales
+                      que se habiliten en la plataforma.
+                    </p>
+                  </section>
+
+                  <section id="datos" class="mb-4">
+                    <h5>2. Datos personales que se recopilan</h5>
+                    <p>Dependiendo de las funcionalidades que utilice la persona usuaria, el sistema puede recopilar:</p>
+                    <ul>
+                      <li>Datos de identificación: nombre, apellido.</li>
+                      <li>Datos de contacto: correo electrónico, número de teléfono.</li>
+                      <li>Datos de ubicación: dirección, barrio y coordenadas aproximadas (cuando se ingresan en el mapa).</li>
+                      <li>
+                        Datos relacionados con denuncias y permisos: descripciones de hechos,
+                        evidencias adjuntas (fotografías, documentos), información sobre la
+                        construcción, ubicación del inmueble y observaciones del trámite.
+                      </li>
+                      <li>
+                        Datos de pagos: información sobre los montos, periodos, fechas de pago, referencia de
+                        transacción y estado del pago (éxito, fallo, pendiente). El sistema no
+                        almacena los datos completos de tarjetas de crédito o débito; estos se
+                        gestionan a través de la pasarela de pago autorizada.
+                      </li>
+                      <li>
+                        Datos de autenticación y uso: correo y contraseña cifrada, fecha y hora de acceso,
+                        dirección IP, navegador utilizado y otra información técnica necesaria para
+                        seguridad y operación.
+                      </li>
+                    </ul>
+                  </section>
+
+                  <section id="finalidad" class="mb-4">
+                    <h5>3. Finalidad del tratamiento de datos</h5>
+                    <p>Los datos personales se utilizan para:</p>
+                    <ul>
+                      <li>Gestionar el registro, autenticación y administración de cuentas de usuario.</li>
+                      <li>
+                        Tramitar denuncias ciudadanas, solicitudes de permisos de construcción y
+                        otros servicios municipales ofrecidos a través de la plataforma.
+                      </li>
+                      <li>
+                        Realizar la facturación y registro de pagos del servicio de tren de aseo y
+                        otros servicios municipales habilitados, así como la generación de comprobantes.
+                      </li>
+                      <li>
+                        Notificar a la persona usuaria sobre el estado de sus trámites, denuncias y pagos
+                        mediante correo electrónico u otros medios de contacto registrados.
+                      </li>
+                      <li>
+                        Cumplir obligaciones legales, administrativas y de archivo municipal, incluyendo
+                        la atención de auditorías y requerimientos de entidades competentes.
+                      </li>
+                      <li>
+                        Mejorar la calidad del servicio, realizar estadísticas internas, detectar
+                        usos indebidos del sistema y fortalecer los mecanismos de transparencia y
+                        atención ciudadana.
+                      </li>
+                    </ul>
+                  </section>
+
+                  <section id="base" class="mb-4">
+                    <h5>4. Base legal del tratamiento</h5>
+                    <p class="mb-0">
+                      El tratamiento de datos se fundamenta en la relación entre la Municipalidad y
+                      la persona usuaria para la prestación de servicios públicos, en el
+                      cumplimiento de obligaciones legales y administrativas, así como en el
+                      consentimiento informado que la persona usuaria otorga al registrarse y
+                      utilizar la plataforma. En caso de dudas específicas sobre el marco legal
+                      aplicable, se deberá acudir a la normativa guatemalteca vigente y, de ser
+                      necesario, solicitar asesoría jurídica especializada.
+                    </p>
+                  </section>
+
+                  <section id="conservacion" class="mb-4">
+                    <h5>5. Plazo de conservación</h5>
+                    <p class="mb-0">
+                      Los datos personales se conservarán durante el tiempo necesario para la
+                      gestión del trámite o servicio solicitado y, posteriormente, conforme a los
+                      plazos de archivo y conservación de documentos municipales y obligaciones
+                      legales aplicables. Una vez vencidos dichos plazos, la información podrá ser
+                      anonimizada o eliminada de forma segura, según corresponda.
+                    </p>
+                  </section>
+
+                  <section id="encargados" class="mb-4">
+                    <h5>6. Encargados del tratamiento y terceros</h5>
+                    <p>
+                      La Municipalidad podrá contar con proveedores externos para la prestación de
+                      servicios tecnológicos, tales como alojamiento del sistema, servicios de
+                      correo electrónico, monitoreo de seguridad o pasarelas de pago en línea.
+                      Estos proveedores pueden tener acceso limitado a ciertos datos personales
+                      para cumplir con la prestación del servicio contratado.
+                    </p>
+                    <p class="mb-0">
+                      En estos casos, la Municipalidad procurará establecer las condiciones
+                      necesarias para proteger adecuadamente la información, limitar su uso a los
+                      fines autorizados y exigir medidas de seguridad acordes a la naturaleza de
+                      los datos tratados.
+                    </p>
+                  </section>
+
+                  <section id="derechos" class="mb-4">
+                    <h5>7. Derechos de la persona usuaria</h5>
+                    <p>La persona usuaria puede, en la medida que lo permita la normativa aplicable:</p>
+                    <ul>
+                      <li>Solicitar acceso a sus datos personales registrados en el sistema.</li>
+                      <li>Solicitar la rectificación de datos inexactos o desactualizados.</li>
+                      <li>
+                        Solicitar la supresión de datos cuando hayan dejado de ser necesarios para
+                        la finalidad original, salvo obligaciones legales de conservación o archivo.
+                      </li>
+                      <li>
+                        Presentar consultas o reclamos ante la Municipalidad sobre el tratamiento de
+                        sus datos personales y el funcionamiento del sistema.
+                      </li>
+                    </ul>
+                    <p class="mb-0">
+                      Para ejercer estos derechos, se deberán utilizar los canales oficiales de
+                      atención de la Municipalidad de San Luis Jilotepeque, tales como ventanilla
+                      de atención, correos institucionales o los medios electrónicos que se
+                      habiliten.
+                    </p>
+                  </section>
+
+                  <section id="seguridad" class="mb-4">
+                    <h5>8. Medidas de seguridad</h5>
+                    <p class="mb-0">
+                      La Municipalidad adoptará medidas técnicas y organizativas razonables para
+                      proteger los datos personales contra pérdida, acceso no autorizado, uso
+                      indebido, alteración o divulgación no autorizada. Entre estas medidas se
+                      pueden encontrar el uso de credenciales de acceso, cifrado de contraseñas y
+                      controles de acceso interno.
+                      No obstante, ninguna plataforma en línea puede garantizar seguridad absoluta,
+                      por lo que la persona usuaria también debe proteger sus credenciales,
+                      dispositivos y redes de acceso.
+                    </p>
+                  </section>
+
+                  <section id="cookies" class="mb-4">
+                    <h5>9. Cookies y registros de actividad</h5>
+                    <p class="mb-0">
+                      El sistema puede utilizar cookies técnicas o de sesión y registros de
+                      actividad con el fin de mantener la sesión iniciada, mejorar la experiencia
+                      de uso y reforzar la seguridad (por ejemplo, detección de accesos inusuales).
+                      Si se implementan cookies adicionales que recojan más información, se
+                      proporcionará la información correspondiente y, cuando sea necesario, se
+                      solicitará el consentimiento del usuario.
+                    </p>
+                  </section>
+
+                  <section id="cambios" class="mb-4">
+                    <h5>10. Cambios en la Política de Privacidad</h5>
+                    <p class="mb-0">
+                      La Municipalidad podrá actualizar esta Política de Privacidad para reflejar
+                      cambios en el sistema, en la legislación aplicable o en los procesos internos
+                      de tratamiento de datos. La versión vigente estará disponible en esta
+                      página, indicando, cuando sea posible, la fecha de última actualización.
+                      El uso continuado del sistema después de la publicación de cambios implica
+                      la aceptación de la política modificada.
+                    </p>
+                  </section>
+
+                  <section id="contacto">
+                    <h5>11. Contacto</h5>
+                    <p class="mb-0">
+                      Si tienes dudas sobre esta Política de Privacidad o sobre el tratamiento de
+                      tus datos personales, puedes comunicarte con la Municipalidad de San Luis
+                      Jilotepeque mediante los canales oficiales de atención ciudadana indicados en
+                      el sitio web institucional o en las oficinas municipales.
+                    </p>
+                  </section>
+                </div>
+              </div>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'vendor/libs/jquery/jquery.js' %}"></script>
+    <script src="{% static 'vendor/libs/popper/popper.js' %}"></script>
+    <script src="{% static 'vendor/js/bootstrap.js' %}"></script>
+    <script src="{% static 'vendor/libs/perfect-scrollbar/perfect-scrollbar.js' %}"></script>
+    <script src="{% static 'vendor/js/menu.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+  </body>
+</html>

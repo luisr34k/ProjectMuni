@@ -81,6 +81,8 @@ def register(request):
             usuario = form.save(commit=False)
             usuario.set_password(form.cleaned_data['password'])
             usuario.es_activo = False
+            usuario.acepto_terminos = form.cleaned_data['acepto_terminos']
+            usuario.fecha_aceptacion = timezone.now()
             usuario.save()
 
             # Link de activación
@@ -110,6 +112,12 @@ def register(request):
         form = RegistroUsuarioForm()
 
     return render(request, "auth/register.html", {"form": form})
+
+def terminos_view(request):
+    return render(request, "auth/terminos.html")
+
+def privacidad_view(request):
+    return render(request, "auth/privacidad.html")
 
 
 def activar_cuenta(request, token):

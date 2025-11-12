@@ -18,6 +18,7 @@ class RegistroUsuarioForm(forms.ModelForm):
         }),
         label="Contraseña"
     )
+
     password2 = forms.CharField(
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
@@ -26,9 +27,18 @@ class RegistroUsuarioForm(forms.ModelForm):
         label="Confirmar contraseña"
     )
 
+    acepto_terminos = forms.BooleanField(
+        required=True,
+        label="Acepto los Términos y Condiciones y la Política de Privacidad",
+        widget=forms.CheckboxInput(attrs={
+            "class": "form-check-input"
+        })
+    )
+
     class Meta:
         model = Usuario
         fields = ['nombre', 'apellido', 'correo', 'telefono']
+
         widgets = {
             'nombre': forms.TextInput(attrs={
                 'class': 'form-control',

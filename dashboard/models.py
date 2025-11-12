@@ -48,6 +48,12 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     token_creado_en = models.DateTimeField(default=timezone.now)  # Fecha para validar 24h
     tipo_usuario = models.CharField(max_length=20, choices=TIPO_USUARIO_CHOICES, default='ciudadano')
     creado_en = models.DateTimeField(auto_now_add=True)
+    acepta_terminos = models.BooleanField(default=False)
+    terminos_aceptados_en = models.DateTimeField(null=True, blank=True)
+    terminos_version = models.CharField(
+        max_length=20,
+        default="v1-2025-11",  # o lo que quieras usar como etiqueta de versión
+    )
 
     # Requeridos por Django
     is_staff = models.BooleanField(default=False)
